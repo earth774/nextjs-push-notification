@@ -1,7 +1,18 @@
-import type { NextConfig } from "next";
+// next.config.js
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: false,//process.env.NODE_ENV === 'development', // disable in dev if desired
+  buildExcludes: [/middleware-manifest\.json$/], // avoid conflicts with app router
+})
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
+/** @type {import('next').NextConfig} */
+const nextConfig = withPWA({
+  experimental: {
+    appDir: true
+  },
+  reactStrictMode: true,
+})
 
-export default nextConfig;
+module.exports = nextConfig

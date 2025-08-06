@@ -1,0 +1,9 @@
+// scripts/gen-vapid.ts
+import webpush from 'web-push'
+
+const vapidKeys = webpush.generateVAPIDKeys()
+
+console.log('Add the following to your .env.local:')
+console.log(`VAPID_PUBLIC_KEY="${vapidKeys.publicKey}"`)
+console.log(`VAPID_PRIVATE_KEY="${vapidKeys.privateKey}"`)
+console.log(`VAPID_SUBJECT="mailto:you@example.com"`)

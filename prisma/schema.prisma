@@ -1,0 +1,17 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgres"
+  url      = env("DATABASE_URL")
+}
+
+model PushSubscription {
+  id             Int     @id @default(autoincrement())
+  endpoint       String  @unique
+  keys_p256dh    String
+  keys_auth      String
+  createdAt      DateTime @default(now())
+}
