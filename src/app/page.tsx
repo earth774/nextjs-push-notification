@@ -20,27 +20,82 @@ export default function HomePage() {
   }
 
   return (
-    <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
-      <h1>Next.js PWA Push Notifications</h1>
-      <p>Make sure you’ve granted permission and subscribed. Then send a test notification:</p>
+    <div style={{ 
+      padding: '16px', 
+      fontFamily: 'system-ui, sans-serif',
+      maxWidth: '600px',
+      margin: '0 auto'
+    }}>
+      <h1 style={{ fontSize: '24px', marginBottom: '16px' }}>Next.js PWA Push Notifications</h1>
+      <p style={{ marginBottom: '20px', lineHeight: '1.5' }}>
+        Make sure you've granted permission and subscribed. Then send a test notification:
+      </p>
       <form onSubmit={sendNotification}>
-        <div>
-          <label>
-            Title:{' '}
-            <input value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+            Title:
           </label>
+          <input 
+            value={title} 
+            onChange={(e) => setTitle(e.target.value)} 
+            required 
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '16px', // Prevents zoom on iOS
+              boxSizing: 'border-box'
+            }}
+          />
         </div>
-        <div style={{ marginTop: 8 }}>
-          <label>
-            Body:{' '}
-            <input value={body} onChange={(e) => setBody(e.target.value)} required />
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+            Body:
           </label>
+          <input 
+            value={body} 
+            onChange={(e) => setBody(e.target.value)} 
+            required 
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '16px', // Prevents zoom on iOS
+              boxSizing: 'border-box'
+            }}
+          />
         </div>
-        <button type="submit" style={{ marginTop: 12 }}>
+        <button 
+          type="submit" 
+          style={{ 
+            width: '100%',
+            padding: '12px 16px',
+            backgroundColor: '#007cba',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '16px',
+            cursor: 'pointer',
+            fontWeight: '500'
+          }}
+        >
           Send Notification
         </button>
       </form>
-      {status && <p>{status}</p>}
+      {status && (
+        <div style={{ 
+          marginTop: '16px', 
+          padding: '12px',
+          backgroundColor: status.includes('Failed') ? '#fee' : '#efe',
+          border: `1px solid ${status.includes('Failed') ? '#fcc' : '#cfc'}`,
+          borderRadius: '4px',
+          fontSize: '14px'
+        }}>
+          {status}
+        </div>
+      )}
     </div>
   )
 }

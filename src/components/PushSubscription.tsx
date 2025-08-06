@@ -3,7 +3,11 @@
 
 import { useEffect, useState } from 'react'
 
-const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+
+if (!publicVapidKey) {
+  console.error('NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set')
+}
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -19,17 +23,45 @@ function urlBase64ToUint8Array(base64String: string) {
 export default function PushSubscription() {
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [subscribed, setSubscribed] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isSupported, setIsSupported] = useState(true)
 
   useEffect(() => {
     console.log('=== Debug Info ===')
-  console.log('NODE_ENV:', process.env.NODE_ENV)
-  console.log('ServiceWorker supported:', 'serviceWorker' in navigator)
-  console.log('PushManager supported:', 'PushManager' in window)
-  console.log('Current permission:', Notification.permission)
-  
+    console.log('NODE_ENV:', process.env.NODE_ENV)
+    console.log('ServiceWorker supported:', 'serviceWorker' in navigator)
+    console.log('PushManager supported:', 'PushManager' in window)
+    console.log('Notification supported:', 'Notification' in window)
+    console.log('Current permission:', 'Notification' in window ? Notification.permission : 'not supported')
+    console.log('VAPID key available:', !!publicVapidKey)
+    console.log('User agent:', navigator.userAgent)
+    
+    // Check for mobile browser support
+    if (!('serviceWorker' in navigator)) {
+      setError('Service Worker not supported in this browser')
+      setIsSupported(false)
+      return
+    }
+    
+    if (!('PushManager' in window)) {
+      setError('Push messaging not supported in this browser')
+      setIsSupported(false)
+      return
+    }
+    
+    if (!('Notification' in window)) {
+      setError('Notifications not supported in this browser')
+      setIsSupported(false)
+      return
+    }
+
+    if (!publicVapidKey) {
+      setError('VAPID key not configured')
+      setIsSupported(false)
+      return
+    }
 
     setPermission(Notification.permission)
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
 
     // เช็คว่ามี subscription อยู่แล้วหรือไม่
     const checkExistingSubscription = async () => {
@@ -46,17 +78,22 @@ export default function PushSubscription() {
   }, [permission])
 
   const requestNotificationPermission = async () => {
-      try {
-      console.log('perm')
+    try {
+      console.log('Requesting notification permission...')
+      setError(null) // Clear any previous errors
+      
       const perm = await Notification.requestPermission()
-      console.log('perm', perm)
+      console.log('Permission result:', perm)
       setPermission(perm)
       
       if (perm === 'granted') {
         await subscribeToNotifications()
+      } else if (perm === 'denied') {
+        setError('Notification permission denied. Please enable notifications in your browser settings.')
       }
     } catch (e) {
       console.error('Permission request failed', e)
+      setError(`Permission request failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
     }
   }
 
@@ -119,31 +156,100 @@ export default function PushSubscription() {
     console.log('Subscribing to push notifications...')
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+      applicationServerKey: urlBase64ToUint8Array(publicVapidKey!)
     })
 
-    // ... rest of the code
+    console.log('Push subscription created:', subscription)
+
+    // Send subscription to server
+    const response = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(subscription)
+    })
+
+    if (response.ok) {
+      setSubscribed(true)
+      console.log('Subscription sent to server successfully')
+    } else {
+      const errorData = await response.text()
+      console.error('Failed to send subscription to server:', errorData)
+      setError('Failed to send subscription to server')
+    }
   } catch (e) {
     console.error('Subscription failed:', e)
-    // setError(`Subscription failed: ${e.message}`)
+    setError(`Subscription failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
   }
 }
+
+  if (!isSupported) {
+    return (
+      <div style={{ padding: 8, backgroundColor: '#fee', border: '1px solid #fcc', borderRadius: 4 }}>
+        <p><strong>❌ Push notifications not supported</strong></p>
+        <p style={{ fontSize: '14px', color: '#666' }}>{error}</p>
+        <p style={{ fontSize: '12px', color: '#888' }}>
+          This may be due to your browser or device limitations. Try using Chrome, Firefox, or Safari on a supported device.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div style={{ padding: 8 }}>
       <p>Push permission: {permission}</p>
       <p>Subscribed: {subscribed ? '✅' : '❌'}</p>
       
+      {error && (
+        <div style={{ 
+          backgroundColor: '#fee', 
+          border: '1px solid #fcc', 
+          borderRadius: 4, 
+          padding: 8, 
+          marginBottom: 8,
+          fontSize: '14px',
+          color: '#c33'
+        }}>
+          {error}
+        </div>
+      )}
+      
       {permission === 'default' && (
-        <button onClick={requestNotificationPermission}>
+        <button 
+          onClick={requestNotificationPermission}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#007cba',
+            color: 'white',
+            border: 'none',
+            borderRadius: 4,
+            cursor: 'pointer'
+          }}
+        >
           Enable Notifications
         </button>
       )}
       
       {permission === 'granted' && !subscribed && (
-        <button onClick={subscribeToNotifications}>
+        <button 
+          onClick={subscribeToNotifications}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: 4,
+            cursor: 'pointer'
+          }}
+        >
           Subscribe to Push Notifications
         </button>
+      )}
+      
+      {permission === 'denied' && (
+        <div style={{ fontSize: '14px', color: '#666' }}>
+          <p>❌ Notifications blocked</p>
+          <p>Please enable notifications in your browser settings and refresh the page.</p>
+        </div>
       )}
     </div>
   )
