@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "generate-vapid": "ts-node --esm scripts/gen-vapid.ts"
+    "generate-vapid": "ts-node --esm scripts/gen-vapid.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.13.0",
