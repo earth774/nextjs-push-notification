@@ -1,18 +1,20 @@
 // next.config.ts
 const withPWA = require('next-pwa')({
   dest: 'public',
-  register: true,
+  register: false, // We'll register manually
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
   buildExcludes: [
     /middleware-manifest\.json$/,
     /app-build-manifest\.json$/,
     /_buildManifest\.js$/,
-    /_ssgManifest\.js$/
+    /_ssgManifest\.js$/,
+    /sw-custom\.js$/
   ],
   publicExcludes: [
     '!robots.txt',
-    '!sitemap.xml'
+    '!sitemap.xml',
+    '!sw-custom.js'
   ],
   fallbacks: {
     document: '/offline'

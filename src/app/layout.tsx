@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   console.log('User agent:', navigator.userAgent);
                   console.log('Platform:', navigator.platform);
                   
-                  navigator.serviceWorker.register('/sw.js', {
+                  navigator.serviceWorker.register('/sw-custom.js', {
                     scope: '/'
                   })
                     .then(function(registration) {
