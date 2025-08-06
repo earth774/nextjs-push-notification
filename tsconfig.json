@@ -24,6 +24,9 @@
       ],
       "@/components/*": [
         "src/components/*"
+      ],
+      "@/utils/*": [
+        "src/utils/*"
       ]
     },
     "esModuleInterop": true,

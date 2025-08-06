@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { getDeviceId, getDeviceName, getDeviceInfo } from '@/utils/deviceUtils'
 
 const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
 
@@ -161,11 +162,25 @@ export default function PushSubscription() {
 
     console.log('Push subscription created:', subscription)
 
-    // Send subscription to server
+    // Get device information
+    const deviceId = getDeviceId()
+    const deviceName = getDeviceName()
+    const deviceInfo = getDeviceInfo()
+
+    // Send subscription to server with device info
+    const subscriptionData = {
+      ...subscription,
+      deviceId,
+      deviceName,
+      userAgent: deviceInfo.userAgent,
+      platform: deviceInfo.platform,
+      userId: null // You can set this if you have user authentication
+    }
+
     const response = await fetch('/api/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(subscription)
+      body: JSON.stringify(subscriptionData)
     })
 
     if (response.ok) {

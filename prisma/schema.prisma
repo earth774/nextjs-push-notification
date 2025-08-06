@@ -1,17 +1,29 @@
 // prisma/schema.prisma
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgres"
-  url      = env("DATABASE_URL")
+    provider = "postgres"
+    url      = env("DATABASE_URL")
 }
 
 model PushSubscription {
-  id             Int     @id @default(autoincrement())
-  endpoint       String  @unique
-  keys_p256dh    String
-  keys_auth      String
-  createdAt      DateTime @default(now())
+    id          Int      @id @default(autoincrement())
+    endpoint    String   @unique
+    keys_p256dh String?
+    keys_auth   String?
+    device_id   String? // Unique device identifier
+    device_name String? // User-friendly device name
+    user_agent  String? // Browser/device info
+    platform    String? // OS platform
+    user_id     String? // User identifier (if you have user system)
+    is_active   Boolean?  @default(true)
+    last_used   DateTime @default(now())
+    created_at  DateTime? @default(now())
+    updated_at  DateTime? @updatedAt
+
+    @@index([device_id])
+    @@index([user_id])
+    @@index([is_active])
 }
