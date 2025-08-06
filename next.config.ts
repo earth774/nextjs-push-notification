@@ -1,17 +1,26 @@
-// next.config.js
+// next.config.ts
 const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: false,//process.env.NODE_ENV === 'development', // disable in dev if desired
-  buildExcludes: [/middleware-manifest\.json$/], // avoid conflicts with app router
+  disable: process.env.NODE_ENV === 'development',
+  buildExcludes: [
+    /middleware-manifest\.json$/,
+    /app-build-manifest\.json$/,
+    /_buildManifest\.js$/,
+    /_ssgManifest\.js$/
+  ],
+  publicExcludes: [
+    '!robots.txt',
+    '!sitemap.xml'
+  ],
+  fallbacks: {
+    document: '/offline'
+  }
 })
 
 /** @type {import('next').NextConfig} */
 const nextConfig = withPWA({
-  experimental: {
-    appDir: true
-  },
   reactStrictMode: true,
 })
 
