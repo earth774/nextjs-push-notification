@@ -169,12 +169,16 @@ export default function PushSubscription() {
 
     // Send subscription to server with device info
     const subscriptionData = {
-      ...subscription,
-      deviceId,
-      deviceName,
-      userAgent: deviceInfo.userAgent,
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: subscription.getKey('p256dh') ? btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('p256dh')!))) : null,
+        auth: subscription.getKey('auth') ? btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth')!))) : null
+      },
+      device_id: deviceId,
+      device_name: deviceName,
+      user_agent: deviceInfo.userAgent,
       platform: deviceInfo.platform,
-      userId: null // You can set this if you have user authentication
+      user_id: null // You can set this if you have user authentication
     }
 
     const response = await fetch('/api/subscribe', {
@@ -185,6 +189,7 @@ export default function PushSubscription() {
 
     if (response.ok) {
       setSubscribed(true)
+      window.location.reload()
       console.log('Subscription sent to server successfully')
     } else {
       const errorData = await response.text()
