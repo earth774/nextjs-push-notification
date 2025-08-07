@@ -30,6 +30,7 @@ export default function DeviceSelector({
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deletingDevice, setDeletingDevice] = useState<string | null>(null)
 
   useEffect(() => {
     fetchDevices()
@@ -41,13 +42,11 @@ export default function DeviceSelector({
       const response = await fetch('/api/devices')
       if (response.ok) {
         const data = await response.json()
-        console.log('Devices data received:', data.devices)
         setDevices(data.devices)
       } else {
         setError('Failed to load devices')
       }
     } catch (err) {
-      console.error('Error loading devices:', err)
       setError('Error loading devices')
     } finally {
       setLoading(false)
@@ -55,14 +54,10 @@ export default function DeviceSelector({
   }
 
   const handleDeviceToggle = (deviceId: string) => {
-    console.log('Device toggle clicked:', deviceId)
-    console.log('Current selectedDevices:', selectedDevices)
-    
     const newSelection = selectedDevices.includes(deviceId)
       ? selectedDevices.filter(id => id !== deviceId)
       : [...selectedDevices, deviceId]
     
-    console.log('New selection:', newSelection)
     onDeviceSelectionChange(newSelection)
   }
 
@@ -71,6 +66,40 @@ export default function DeviceSelector({
       onDeviceSelectionChange([])
     } else {
       onDeviceSelectionChange(devices.map(d => d.deviceId))
+    }
+  }
+
+  const handleDeleteDevice = async (deviceId: string, deviceName: string) => {
+    if (!confirm(`Are you sure you want to delete "${deviceName}"? This will remove all push subscriptions for this device.`)) {
+      return
+    }
+
+    setDeletingDevice(deviceId)
+    
+    try {
+      const response = await fetch(`/api/devices/${deviceId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        // Remove device from local state
+        setDevices(prev => prev.filter(d => d.deviceId !== deviceId))
+        
+        // Remove from selected devices if it was selected
+        if (selectedDevices.includes(deviceId)) {
+          onDeviceSelectionChange(selectedDevices.filter(id => id !== deviceId))
+        }
+        
+        // Device deleted successfully
+      } else {
+        const data = await response.json()
+        alert(`Failed to delete device: ${data.error}`)
+      }
+    } catch (err) {
+      console.error('Delete device error:', err)
+      alert('Error deleting device')
+    } finally {
+      setDeletingDevice(null)
     }
   }
 
@@ -183,7 +212,7 @@ export default function DeviceSelector({
 
           <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
             {devices.map((device) => (
-              <label
+              <div
                 key={device.deviceId}
                 style={{
                   display: 'flex',
@@ -192,30 +221,56 @@ export default function DeviceSelector({
                   border: '1px solid #eee',
                   borderRadius: '4px',
                   marginBottom: '4px',
-                  cursor: 'pointer',
                   backgroundColor: selectedDevices.includes(device.deviceId) ? '#f0f8ff' : 'white'
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={selectedDevices.includes(device.deviceId)}
-                  onChange={() => handleDeviceToggle(device.deviceId)}
-                  style={{ marginRight: '8px' }}
-                />
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
-                    <span style={{ marginRight: '8px' }}>
-                      {getPlatformIcon(device.platform)}
-                    </span>
-                    <strong style={{ fontSize: '14px' }}>
-                      {device.deviceName}
-                    </strong>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    flex: 1,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedDevices.includes(device.deviceId)}
+                    onChange={() => handleDeviceToggle(device.deviceId)}
+                    style={{ marginRight: '8px' }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
+                      <span style={{ marginRight: '8px' }}>
+                        {getPlatformIcon(device.platform)}
+                      </span>
+                      <strong style={{ fontSize: '14px' }}>
+                        {device.deviceName}
+                      </strong>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {device.platform} • Last used: {formatLastUsed(device.lastUsed)}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>
-                    {device.platform} • Last used: {formatLastUsed(device.lastUsed)}
-                  </div>
-                </div>
-              </label>
+                </label>
+                <button
+                  onClick={() => handleDeleteDevice(device.deviceId, device.deviceName)}
+                  disabled={deletingDevice === device.deviceId}
+                  style={{
+                    padding: '4px 8px',
+                    backgroundColor: deletingDevice === device.deviceId ? '#ccc' : '#ff4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '3px',
+                    cursor: deletingDevice === device.deviceId ? 'not-allowed' : 'pointer',
+                    fontSize: '12px',
+                    marginLeft: '8px',
+                    minWidth: '60px'
+                  }}
+                  title="Delete this device"
+                >
+                  {deletingDevice === device.deviceId ? '...' : '🗑️ Delete'}
+                </button>
+              </div>
             ))}
           </div>
 
