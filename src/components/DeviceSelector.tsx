@@ -9,6 +9,7 @@ interface Device {
   deviceName: string
   platform: string
   userAgent: string
+  userId?: string
   lastUsed: string
   createdAt: string
 }
@@ -40,11 +41,13 @@ export default function DeviceSelector({
       const response = await fetch('/api/devices')
       if (response.ok) {
         const data = await response.json()
+        console.log('Devices data received:', data.devices)
         setDevices(data.devices)
       } else {
         setError('Failed to load devices')
       }
     } catch (err) {
+      console.error('Error loading devices:', err)
       setError('Error loading devices')
     } finally {
       setLoading(false)
@@ -52,10 +55,14 @@ export default function DeviceSelector({
   }
 
   const handleDeviceToggle = (deviceId: string) => {
+    console.log('Device toggle clicked:', deviceId)
+    console.log('Current selectedDevices:', selectedDevices)
+    
     const newSelection = selectedDevices.includes(deviceId)
       ? selectedDevices.filter(id => id !== deviceId)
       : [...selectedDevices, deviceId]
     
+    console.log('New selection:', newSelection)
     onDeviceSelectionChange(newSelection)
   }
 

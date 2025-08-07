@@ -27,12 +27,23 @@ export async function GET(req: NextRequest) {
       orderBy: { last_used: 'desc' }
     })
 
-    // Group by deviceId to avoid duplicates
-    const uniqueDevices = devices.reduce((acc: any[], device) => {
-      const existing = acc.find(d => d.deviceId === device.device_id)
+    // Transform and group by deviceId to avoid duplicates
+    const transformedDevices = devices.map(device => ({
+      id: device.id,
+      deviceId: device.device_id,
+      deviceName: device.device_name,
+      platform: device.platform,
+      userAgent: device.user_agent,
+      userId: device.user_id,
+      lastUsed: device.last_used,
+      createdAt: device.created_at
+    }))
+
+    const uniqueDevices = transformedDevices.reduce((acc: any[], device) => {
+      const existing = acc.find(d => d.deviceId === device.deviceId)
       if (!existing) {
         acc.push(device)
-      } else if (device.last_used > existing.lastUsed) {
+      } else if (device.lastUsed > existing.lastUsed) {
         // Replace with more recent entry
         const index = acc.indexOf(existing)
         acc[index] = device
