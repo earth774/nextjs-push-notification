@@ -94,7 +94,41 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     
                   // Setup comprehensive message listening
                   function handleNavigationMessage(data, source = 'unknown') {
-                    // Handle in-app notification display
+                    // Handle silent notification data (no UI display)
+                    if (data && data.type === 'NOTIFICATION_DATA_RECEIVED') {
+                      console.log('📨 ==============================');
+                      console.log('📨 ได้รับข้อมูลการแจ้งเตือน (ไม่แสดง UI)');
+                      console.log('📨 ==============================');
+                      console.log('📡 แหล่งที่มา:', source);
+                      console.log('👁️  App visibility:', document.visibilityState);
+                      console.log('📱 Title:', data.title);
+                      console.log('📝 Body:', data.body);
+                      console.log('🎯 URL:', data.url);
+                      console.log('🆔 ID:', data.id);
+                      console.log('⏰ Timestamp:', data.timestamp);
+                      
+                      console.log('🔇 การแจ้งเตือนถูกส่งมาแต่ไม่แสดง UI เพราะ app เปิดอยู่');
+                      console.log('💡 ข้อมูลสามารถเข้าถึงได้จาก console logs หรือ localStorage');
+                      
+                      // Store in window object for easy access
+                      if (!window.receivedNotifications) {
+                        window.receivedNotifications = [];
+                      }
+                      window.receivedNotifications.push({
+                        title: data.title,
+                        body: data.body,
+                        url: data.url,
+                        id: data.id,
+                        timestamp: data.timestamp,
+                        receivedAt: new Date().toISOString()
+                      });
+                      
+                      console.log('📋 ข้อมูลถูกเก็บใน window.receivedNotifications');
+                      console.log('🔍 ใช้คำสั่ง: console.log(window.receivedNotifications) เพื่อดูข้อมูลทั้งหมด');
+                      return;
+                    }
+                    
+                    // Handle in-app notification display (legacy)
                     if (data && data.type === 'SHOW_IN_APP_NOTIFICATION') {
                       console.log('📨 ==============================');
                       console.log('📨 ได้รับคำสั่ง แสดง In-App Notification!');
@@ -208,12 +242,22 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   // Method 2: localStorage listener (fallback)
                   window.addEventListener('storage', function(event) {
                     if (event.key === 'sw-navigation' && event.newValue) {
-                      console.log('💾 localStorage: ได้รับ trigger');
+                      console.log('💾 localStorage: ได้รับ navigation trigger');
                       try {
                         const data = JSON.parse(event.newValue);
                         handleNavigationMessage(data, 'localStorage');
                       } catch (parseError) {
                         console.log('❌ ไม่สามารถ parse localStorage data:', parseError);
+                      }
+                    }
+                    
+                    if (event.key === 'sw-notification-data' && event.newValue) {
+                      console.log('💾 localStorage: ได้รับข้อมูลการแจ้งเตือน');
+                      try {
+                        const data = JSON.parse(event.newValue);
+                        handleNavigationMessage(data, 'localStorage');
+                      } catch (parseError) {
+                        console.log('❌ ไม่สามารถ parse notification data:', parseError);
                       }
                     }
                   });

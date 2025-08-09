@@ -76,9 +76,9 @@ self.addEventListener('push', function(event) {
       console.log('🔍 App อยู่ foreground:', hasVisibleClient);
       console.log('📊 Visible clients:', visibleClients.length);
       
-      // If app is in foreground, send direct navigation message and DON'T show browser notification
+      // If app is in foreground, send data to app but DON'T show any notification
       if (hasVisibleClient && visibleClients.length > 0) {
-        console.log('⚠️  App อยู่ foreground - แสดง in-app notification แทน!');
+        console.log('⚠️  App อยู่ foreground - ไม่แสดงการแจ้งเตือนใดๆ!');
         
         const title = encodeURIComponent(notificationData.title || 'ไม่พบหัวข้อ');
         const body = encodeURIComponent(notificationData.body || 'ไม่พบเนื้อหา');
@@ -88,54 +88,61 @@ self.addEventListener('push', function(event) {
         
         console.log('🎯 Navigation URL:', notificationUrl);
         
-        // Send message to all visible clients
+        // Send message to all visible clients (but don't show notification)
         visibleClients.forEach(client => {
-          console.log('📤 ส่งข้อความไปยัง:', client.url);
+          console.log('📤 ส่งข้อมูลไปยัง app (ไม่แสดงการแจ้งเตือน):', client.url);
           
           // Method 1: BroadcastChannel
           try {
             const channel = new BroadcastChannel('notification-navigation');
             channel.postMessage({
-              type: 'SHOW_IN_APP_NOTIFICATION',
+              type: 'NOTIFICATION_DATA_RECEIVED',
               url: notificationUrl,
               title: notificationData.title,
               body: notificationData.body,
-              source: 'push-foreground'
+              timestamp: notificationData.data?.timestamp || new Date().toISOString(),
+              id: notificationData.data?.id || Date.now().toString(),
+              source: 'push-foreground-silent'
             });
             channel.close();
-            console.log('✅ BroadcastChannel sent (in-app)');
+            console.log('✅ ส่งข้อมูลผ่าน BroadcastChannel');
           } catch (e) {
             console.log('❌ BroadcastChannel failed:', e);
           }
           
           // Method 2: postMessage
           client.postMessage({
-            type: 'SHOW_IN_APP_NOTIFICATION',
+            type: 'NOTIFICATION_DATA_RECEIVED',
             url: notificationUrl,
             title: notificationData.title,
             body: notificationData.body,
-            source: 'push-foreground'
+            timestamp: notificationData.data?.timestamp || new Date().toISOString(),
+            id: notificationData.data?.id || Date.now().toString(),
+            source: 'push-foreground-silent'
           });
-          console.log('✅ postMessage sent (in-app)');
+          console.log('✅ ส่งข้อมูลผ่าน postMessage');
           
           // Method 3: localStorage
           try {
-            localStorage.setItem('sw-navigation', JSON.stringify({
-              type: 'SHOW_IN_APP_NOTIFICATION',
+            localStorage.setItem('sw-notification-data', JSON.stringify({
+              type: 'NOTIFICATION_DATA_RECEIVED',
               url: notificationUrl,
               title: notificationData.title,
               body: notificationData.body,
-              timestamp: Date.now(),
-              source: 'push-foreground'
+              timestamp: notificationData.data?.timestamp || new Date().toISOString(),
+              id: notificationData.data?.id || Date.now().toString(),
+              receivedAt: Date.now(),
+              source: 'push-foreground-silent'
             }));
-            console.log('✅ localStorage set (in-app)');
+            console.log('✅ บันทึกข้อมูลใน localStorage');
           } catch (e) {
             console.log('❌ localStorage failed:', e);
           }
         });
         
-        console.log('🚫 ไม่แสดง browser notification เพราะ app เปิดอยู่');
-        return Promise.resolve(); // Don't show browser notification
+        console.log('🚫 ไม่แสดงการแจ้งเตือนใดๆ เพราะ app เปิดอยู่');
+        console.log('📊 ข้อมูลถูกส่งไปยัง app แล้ว สามารถเข้าถึงผ่าน console หรือ localStorage');
+        return Promise.resolve(); // Don't show any notification
       }
       
       // Only show browser notification if app is NOT in foreground
