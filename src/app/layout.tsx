@@ -92,8 +92,97 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                       console.error('Error details:', registrationError.message);
                     });
                     
+                  // Function to show visual feedback for notification clicks
+                  function showNotificationClickFeedback(clickData) {
+                    // Create a temporary toast notification
+                    const toast = document.createElement('div');
+                    toast.style.cssText = \`
+                      position: fixed;
+                      top: 20px;
+                      right: 20px;
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                      color: white;
+                      padding: 16px 24px;
+                      border-radius: 8px;
+                      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                      z-index: 10000;
+                      max-width: 350px;
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                      font-size: 14px;
+                      line-height: 1.4;
+                      opacity: 0;
+                      transform: translateX(100%);
+                      transition: all 0.3s ease-out;
+                      border-left: 4px solid #4CAF50;
+                    \`;
+                    
+                    const time = new Date(clickData.clickedAt).toLocaleTimeString('th-TH');
+                    toast.innerHTML = \`
+                      <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 16px; margin-right: 8px;">🔔</span>
+                        <strong>Notification Clicked!</strong>
+                      </div>
+                      <div style="margin-bottom: 4px;"><strong>Title:</strong> \${clickData.title || 'N/A'}</div>
+                      <div style="margin-bottom: 4px;"><strong>Message:</strong> \${clickData.body || 'N/A'}</div>
+                      <div style="font-size: 12px; opacity: 0.8;">Clicked at: \${time}</div>
+                    \`;
+                    
+                    document.body.appendChild(toast);
+                    
+                    // Animate in
+                    setTimeout(() => {
+                      toast.style.opacity = '1';
+                      toast.style.transform = 'translateX(0)';
+                    }, 100);
+                    
+                    // Animate out and remove
+                    setTimeout(() => {
+                      toast.style.opacity = '0';
+                      toast.style.transform = 'translateX(100%)';
+                      setTimeout(() => {
+                        if (toast.parentNode) {
+                          toast.parentNode.removeChild(toast);
+                        }
+                      }, 300);
+                    }, 4000);
+                  }
+                  
                   // Setup comprehensive message listening
                   function handleNavigationMessage(data, source = 'unknown') {
+                    // Handle notification click data
+                    if (data && data.type === 'NOTIFICATION_CLICKED') {
+                      console.log('🔔 ==============================');
+                      console.log('🔔 NOTIFICATION CLICKED IN APP!');
+                      console.log('🔔 ==============================');
+                      console.log('📡 แหล่งที่มา:', source);
+                      console.log('👁️  App visibility:', document.visibilityState);
+                      console.log('📱 Title:', data.data.title);
+                      console.log('📝 Body:', data.data.body);
+                      console.log('🆔 Tag:', data.data.tag);
+                      console.log('🎯 Data:', data.data.data);
+                      console.log('⏰ Clicked at:', data.data.clickedAt);
+                      console.log('🎬 Action:', data.data.action);
+                      console.log('🔔 ==============================');
+                      
+                      // Store in window object for easy access
+                      if (!window.notificationClicks) {
+                        window.notificationClicks = [];
+                      }
+                      window.notificationClicks.unshift(data.data); // Add to beginning
+                      
+                      // Keep only last 20 clicks in memory
+                      if (window.notificationClicks.length > 20) {
+                        window.notificationClicks.splice(20);
+                      }
+                      
+                      console.log('📋 Notification click data stored in window.notificationClicks');
+                      console.log('🔍 Use: console.log(window.notificationClicks) to view all clicks');
+                      
+                      // Show visual feedback
+                      showNotificationClickFeedback(data.data);
+                      return;
+                    }
+                    
                     // Handle silent notification data (no UI display)
                     if (data && data.type === 'NOTIFICATION_DATA_RECEIVED') {
                       console.log('📨 ==============================');
@@ -148,12 +237,24 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   try {
                     const navChannel = new BroadcastChannel('notification-navigation');
                     navChannel.addEventListener('message', function(event) {
-                      console.log('📡 BroadcastChannel: ได้รับข้อความ');
-                      handleNavigationMessage(event.data, 'BroadcastChannel');
+                      console.log('📡 BroadcastChannel (navigation): ได้รับข้อความ');
+                      handleNavigationMessage(event.data, 'BroadcastChannel-Navigation');
                     });
-                    console.log('BroadcastChannel listener setup complete');
+                    console.log('Navigation BroadcastChannel listener setup complete');
                   } catch (bcError) {
-                    console.log('BroadcastChannel not supported:', bcError);
+                    console.log('Navigation BroadcastChannel not supported:', bcError);
+                  }
+                  
+                  // Notification logs BroadcastChannel listener
+                  try {
+                    const logsChannel = new BroadcastChannel('notification-logs');
+                    logsChannel.addEventListener('message', function(event) {
+                      console.log('📡 BroadcastChannel (logs): ได้รับข้อความ');
+                      handleNavigationMessage(event.data, 'BroadcastChannel-Logs');
+                    });
+                    console.log('Logs BroadcastChannel listener setup complete');
+                  } catch (bcError) {
+                    console.log('Logs BroadcastChannel not supported:', bcError);
                   }
                   
                   // Method 2: localStorage listener (fallback)

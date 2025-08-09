@@ -168,7 +168,39 @@ self.addEventListener('push', function(event) {
 
 // Handle notification click events
 self.addEventListener('notificationclick', function(event) {
-  console.log('🔔 Notification clicked:', event.notification.title);
+  console.log('🔔 ========================================');
+  console.log('🔔 NOTIFICATION CLICKED - DETAILED LOG');
+  console.log('🔔 ========================================');
+  console.log('📱 Title:', event.notification.title);
+  console.log('📝 Body:', event.notification.body);
+  console.log('🆔 Tag:', event.notification.tag);
+  console.log('🎯 Data:', event.notification.data);
+  console.log('⏰ Timestamp:', new Date().toISOString());
+  console.log('🔔 ========================================');
+  
+  // Store notification click data for app access
+  const clickData = {
+    title: event.notification.title,
+    body: event.notification.body,
+    tag: event.notification.tag,
+    data: event.notification.data,
+    clickedAt: new Date().toISOString(),
+    action: event.action || 'default'
+  };
+  
+  // Store in localStorage for app access
+  try {
+    const existingClicks = JSON.parse(localStorage.getItem('notification-clicks') || '[]');
+    existingClicks.unshift(clickData); // Add to beginning
+    // Keep only last 50 clicks
+    if (existingClicks.length > 50) {
+      existingClicks.splice(50);
+    }
+    localStorage.setItem('notification-clicks', JSON.stringify(existingClicks));
+    console.log('✅ Notification click data stored in localStorage');
+  } catch (e) {
+    console.error('❌ Failed to store notification click data:', e);
+  }
   
   event.notification.close();
 
@@ -258,10 +290,20 @@ self.addEventListener('notificationclick', function(event) {
               const channel = new BroadcastChannel('notification-navigation');
               channel.postMessage({
                 type: 'NAVIGATE_TO_NOTIFICATION',
-                url: notificationUrl
+                url: notificationUrl,
+                clickData: clickData // Include click data
               });
               channel.close();
               console.log('✅ ส่ง BroadcastChannel สำเร็จ');
+              
+              // Also send click log data
+              const logChannel = new BroadcastChannel('notification-logs');
+              logChannel.postMessage({
+                type: 'NOTIFICATION_CLICKED',
+                data: clickData
+              });
+              logChannel.close();
+              console.log('✅ ส่ง notification click log สำเร็จ');
             } catch (bcError) {
               console.log('❌ BroadcastChannel ล้มเหลว:', bcError);
             }
@@ -288,9 +330,17 @@ self.addEventListener('notificationclick', function(event) {
             console.log('🔄 วิธีที่ 3: postMessage');
             targetClient.postMessage({
               type: 'NAVIGATE_TO_NOTIFICATION',
-              url: notificationUrl
+              url: notificationUrl,
+              clickData: clickData
             });
             console.log('✅ ส่ง postMessage สำเร็จ');
+            
+            // Send click log data via postMessage too
+            targetClient.postMessage({
+              type: 'NOTIFICATION_CLICKED',
+              data: clickData
+            });
+            console.log('✅ ส่ง notification click log via postMessage สำเร็จ');
             
             // Method 4: Try client.navigate if available
             if (targetClient.navigate) {

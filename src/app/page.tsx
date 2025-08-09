@@ -2,6 +2,7 @@
 'use client'
 import { FormEvent, useState } from 'react'
 import DeviceSelector from '@/components/DeviceSelector'
+import NotificationHistory from '@/components/NotificationHistory'
 
 export default function HomePage() {
   const [title, setTitle] = useState('Hello from Next PWA')
@@ -68,6 +69,8 @@ export default function HomePage() {
         sendToAll={sendToAll}
         onSendToAllChange={setSendToAll}
       />
+      
+      <NotificationHistory />
       
       <form onSubmit={sendNotification}>
         <div style={{ marginBottom: '12px' }}>
@@ -148,10 +151,11 @@ export default function HomePage() {
       }}>
         <strong>วิธีใช้งาน:</strong><br />
         1. กด "Send Notification" เพื่อส่งการแจ้งเตือน<br />
-        2. <strong>หาก app เปิดอยู่:</strong> จะไม่แสดงการแจ้งเตือนใดๆ (silent mode)<br />
+        2. <strong>หาก app เปิดอยู่:</strong> จะไม่แสดงการแจ้งเตือนใดๆ (silent mode) แต่จะ log ข้อความใน console<br />
         3. <strong>หาก app ปิดอยู่:</strong> จะแสดงการแจ้งเตือนของ browser ปกติ<br />
-        4. ข้อมูลการแจ้งเตือนจะถูกส่งไปยัง console และ localStorage<br />
-        5. ดู Browser Console เพื่อดูข้อมูลการแจ้งเตือนที่ได้รับ<br />
+        4. <strong>เมื่อกดแจ้งเตือน:</strong> จะมี toast notification แสดงข้อมูลและ log ใน console<br />
+        5. ดูประวัติการแจ้งเตือนใน "Notification History" ด้านบน<br />
+        6. ข้อมูลทั้งหมดถูกเก็บใน console, localStorage และ window object<br />
       </div>
       
       <div style={{ 
@@ -164,10 +168,12 @@ export default function HomePage() {
       }}>
         <strong>💡 เคล็ดลับ:</strong><br />
         • เปิด Developer Tools → Console เพื่อดู logs แบบละเอียด<br />
-        • <strong>App เปิดอยู่:</strong> ไม่มีการแจ้งเตือนใดๆ แต่ข้อมูลจะแสดงใน console<br />
+        • <strong>App เปิดอยู่:</strong> ไม่มีการแจ้งเตือนใดๆ แต่ข้อมูลจะแสดงใน console และ toast notification<br />
         • <strong>App ปิดอยู่:</strong> จะเห็นการแจ้งเตือนของ browser ปกติ<br />
-        • ใช้คำสั่ง <code>console.log(window.receivedNotifications)</code> เพื่อดูข้อมูลทั้งหมด<br />
-        • ข้อมูลจะถูกเก็บใน localStorage ด้วย<br />
+        • <strong>เมื่อกดแจ้งเตือน:</strong> จะมี toast แสดงข้อมูลและเก็บใน Notification History<br />
+        • ใช้คำสั่ง <code>console.log(window.notificationClicks)</code> เพื่อดูประวัติการกด<br />
+        • ใช้คำสั่ง <code>console.log(window.receivedNotifications)</code> เพื่อดูข้อมูลที่ได้รับ<br />
+        • ข้อมูลทั้งหมดจะถูกเก็บใน localStorage ด้วย<br />
       </div>
     </div>
   )
