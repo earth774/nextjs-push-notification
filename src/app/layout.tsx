@@ -94,6 +94,23 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     
                   // Setup comprehensive message listening
                   function handleNavigationMessage(data, source = 'unknown') {
+                    // Handle in-app notification display
+                    if (data && data.type === 'SHOW_IN_APP_NOTIFICATION') {
+                      console.log('📨 ==============================');
+                      console.log('📨 ได้รับคำสั่ง แสดง In-App Notification!');
+                      console.log('📨 ==============================');
+                      console.log('📡 แหล่งที่มา:', source);
+                      console.log('👁️  App visibility:', document.visibilityState);
+                      console.log('📱 Title:', data.title);
+                      console.log('📝 Body:', data.body);
+                      console.log('🎯 URL ปลายทาง:', data.url);
+                      
+                      console.log('🔔 แสดงการแจ้งเตือนภายใน app...');
+                      showInAppNotification(data.url, data.title, data.body);
+                      return;
+                    }
+                    
+                    // Handle direct navigation
                     if (data && data.type === 'NAVIGATE_TO_NOTIFICATION') {
                       console.log('📨 ==============================');
                       console.log('📨 ได้รับคำสั่ง Navigate!');
@@ -103,24 +120,26 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                       console.log('📍 URL ปัจจุบัน:', window.location.href);
                       console.log('🎯 URL ปลายทาง:', data.url);
                       
-                      // If from push-foreground, show in-app notification first
-                      if (data.source === 'push-foreground') {
-                        console.log('🔔 แสดงการแจ้งเตือนภายใน app ก่อน...');
-                        showInAppNotification(data.url);
-                      } else {
-                        console.log('🚀 กำลัง navigate ทันที...');
-                        window.location.href = data.url;
-                        console.log('✅ Navigate command executed!');
-                      }
+                      console.log('🚀 กำลัง navigate ทันที...');
+                      window.location.href = data.url;
+                      console.log('✅ Navigate command executed!');
                     }
                   }
                   
                   // Show in-app notification
-                  function showInAppNotification(url) {
-                    // Extract title and body from URL
-                    const urlObj = new URL(url, window.location.origin);
-                    const title = decodeURIComponent(urlObj.searchParams.get('title') || 'การแจ้งเตือน');
-                    const body = decodeURIComponent(urlObj.searchParams.get('body') || 'คลิกเพื่อดูรายละเอียด');
+                  function showInAppNotification(url, titleParam = null, bodyParam = null) {
+                    // Use provided parameters or extract from URL
+                    let title, body;
+                    
+                    if (titleParam && bodyParam) {
+                      title = titleParam;
+                      body = bodyParam;
+                    } else {
+                      // Extract title and body from URL
+                      const urlObj = new URL(url, window.location.origin);
+                      title = decodeURIComponent(urlObj.searchParams.get('title') || 'การแจ้งเตือน');
+                      body = decodeURIComponent(urlObj.searchParams.get('body') || 'คลิกเพื่อดูรายละเอียด');
+                    }
                     
                     // Create in-app notification element
                     const notification = document.createElement('div');

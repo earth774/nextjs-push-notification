@@ -76,9 +76,9 @@ self.addEventListener('push', function(event) {
       console.log('🔍 App อยู่ foreground:', hasVisibleClient);
       console.log('📊 Visible clients:', visibleClients.length);
       
-      // If app is in foreground, send direct navigation message
+      // If app is in foreground, send direct navigation message and DON'T show browser notification
       if (hasVisibleClient && visibleClients.length > 0) {
-        console.log('⚠️  App อยู่ foreground - ส่งข้อความตรงไปยัง app!');
+        console.log('⚠️  App อยู่ foreground - แสดง in-app notification แทน!');
         
         const title = encodeURIComponent(notificationData.title || 'ไม่พบหัวข้อ');
         const body = encodeURIComponent(notificationData.body || 'ไม่พบเนื้อหา');
@@ -96,41 +96,50 @@ self.addEventListener('push', function(event) {
           try {
             const channel = new BroadcastChannel('notification-navigation');
             channel.postMessage({
-              type: 'NAVIGATE_TO_NOTIFICATION',
+              type: 'SHOW_IN_APP_NOTIFICATION',
               url: notificationUrl,
+              title: notificationData.title,
+              body: notificationData.body,
               source: 'push-foreground'
             });
             channel.close();
-            console.log('✅ BroadcastChannel sent');
+            console.log('✅ BroadcastChannel sent (in-app)');
           } catch (e) {
             console.log('❌ BroadcastChannel failed:', e);
           }
           
           // Method 2: postMessage
           client.postMessage({
-            type: 'NAVIGATE_TO_NOTIFICATION',
+            type: 'SHOW_IN_APP_NOTIFICATION',
             url: notificationUrl,
+            title: notificationData.title,
+            body: notificationData.body,
             source: 'push-foreground'
           });
-          console.log('✅ postMessage sent');
+          console.log('✅ postMessage sent (in-app)');
           
           // Method 3: localStorage
           try {
             localStorage.setItem('sw-navigation', JSON.stringify({
-              type: 'NAVIGATE_TO_NOTIFICATION',
+              type: 'SHOW_IN_APP_NOTIFICATION',
               url: notificationUrl,
+              title: notificationData.title,
+              body: notificationData.body,
               timestamp: Date.now(),
               source: 'push-foreground'
             }));
-            console.log('✅ localStorage set');
+            console.log('✅ localStorage set (in-app)');
           } catch (e) {
             console.log('❌ localStorage failed:', e);
           }
         });
+        
+        console.log('🚫 ไม่แสดง browser notification เพราะ app เปิดอยู่');
+        return Promise.resolve(); // Don't show browser notification
       }
       
-      // ALWAYS show notification regardless of app state
-      console.log('📢 ===== แสดงการแจ้งเตือน =====');
+      // Only show browser notification if app is NOT in foreground
+      console.log('📢 ===== แสดงการแจ้งเตือน browser =====');
       console.log('📱 Title:', notificationData.title);
       console.log('📝 Body:', notificationData.body);
       console.log('📊 Data:', notificationData.data);
@@ -147,9 +156,9 @@ self.addEventListener('push', function(event) {
         renotify: true,
         vibrate: [200, 100, 200] // Add vibration
       }).then(() => {
-        console.log('✅ การแจ้งเตือนแสดงสำเร็จ!');
+        console.log('✅ การแจ้งเตือน browser แสดงสำเร็จ!');
       }).catch(error => {
-        console.error('❌ ไม่สามารถแสดงการแจ้งเตือนได้:', error);
+        console.error('❌ ไม่สามารถแสดงการแจ้งเตือน browser ได้:', error);
       });
     }).catch(error => {
       console.error('❌ Error in push event:', error);
