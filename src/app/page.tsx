@@ -11,65 +11,7 @@ export default function HomePage() {
   const [sendToAll, setSendToAll] = useState(true)
   const [sending, setSending] = useState(false)
 
-  const testNotificationClick = () => {
-    // Simulate notification click redirect
-    const testUrl = `/notification?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&timestamp=${encodeURIComponent(new Date().toISOString())}&id=${encodeURIComponent('test-' + Date.now())}`
-    
-    console.log('=== TESTING NOTIFICATION REDIRECT ===')
-    console.log('Test URL:', testUrl)
-    
-    window.location.href = testUrl
-  }
 
-  const simulateNotificationClick = async () => {
-    console.log('=== SIMULATING SERVICE WORKER NOTIFICATION CLICK ===')
-    
-    // Send a message to simulate what the service worker would do
-    const testUrl = `/notification?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&timestamp=${encodeURIComponent(new Date().toISOString())}&id=${encodeURIComponent('sw-test-' + Date.now())}`
-    
-    // Post message to window (simulating service worker postMessage)
-    window.postMessage({
-      type: 'NAVIGATE_TO_NOTIFICATION',
-      url: testUrl
-    }, '*')
-    
-    console.log('Posted message with URL:', testUrl)
-  }
-
-  const checkAppState = () => {
-    console.log('=== CHECKING APP STATE ===')
-    console.log('Document visibility:', document.visibilityState)
-    console.log('Document hidden:', document.hidden)
-    console.log('Window focused:', document.hasFocus())
-    console.log('Current URL:', window.location.href)
-    
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        console.log('SW registrations:', registrations.length)
-        registrations.forEach((reg, index) => {
-          console.log(`SW ${index + 1}:`, reg.active?.scriptURL)
-        })
-      })
-    }
-  }
-
-  const testBroadcastChannel = () => {
-    console.log('=== TESTING BROADCAST CHANNEL ===')
-    
-    const testUrl = `/notification?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&timestamp=${encodeURIComponent(new Date().toISOString())}&id=${encodeURIComponent('bc-test-' + Date.now())}`
-    
-    try {
-      const channel = new BroadcastChannel('notification-navigation')
-      channel.postMessage({
-        type: 'NAVIGATE_TO_NOTIFICATION',
-        url: testUrl
-      })
-      channel.close()
-      console.log('BroadcastChannel message sent:', testUrl)
-    } catch (error) {
-      console.error('BroadcastChannel test failed:', error)
-    }
-  }
 
   const sendNotification = async (e: FormEvent) => {
     e.preventDefault()
@@ -176,84 +118,11 @@ export default function HomePage() {
             borderRadius: '4px',
             fontSize: '16px',
             cursor: sending || (!sendToAll && selectedDevices.length === 0) ? 'not-allowed' : 'pointer',
-            fontWeight: '500',
-            marginBottom: '8px'
+            fontWeight: '500'
           }}
         >
           {sending ? 'Sending...' : 'Send Notification'}
         </button>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-          <button 
-            type="button" 
-            onClick={testNotificationClick}
-            style={{ 
-              padding: '8px 16px',
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: 'pointer',
-              fontWeight: '500'
-            }}
-          >
-            🧪 ทดสอบหน้าการแจ้งเตือน
-          </button>
-          
-          <button 
-            type="button" 
-            onClick={testBroadcastChannel}
-            style={{ 
-              padding: '8px 16px',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: 'pointer',
-              fontWeight: '500'
-            }}
-          >
-            📡 ทดสอบ BroadcastChannel
-          </button>
-        </div>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-          <button 
-            type="button" 
-            onClick={simulateNotificationClick}
-            style={{ 
-              padding: '8px 16px',
-              backgroundColor: '#17a2b8',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: 'pointer',
-              fontWeight: '500'
-            }}
-          >
-            🔄 จำลอง SW Click
-          </button>
-          
-          <button 
-            type="button" 
-            onClick={checkAppState}
-            style={{ 
-              padding: '8px 16px',
-              backgroundColor: '#6f42c1',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: 'pointer',
-              fontWeight: '500'
-            }}
-          >
-            🔍 ตรวจสอบสถานะ App
-          </button>
-        </div>
 
       </form>
       {status && (
@@ -277,16 +146,11 @@ export default function HomePage() {
         borderRadius: '4px',
         fontSize: '12px'
       }}>
-        <strong>วิธีทดสอบ:</strong><br />
-        1. <strong>ทดสอบการ redirect:</strong> กด "🧪 ทดสอบหน้าการแจ้งเตือน"<br />
-        2. <strong>ทดสอบ BroadcastChannel:</strong> กด "📡 ทดสอบ BroadcastChannel"<br />
-        3. <strong>ทดสอบ PostMessage:</strong> กด "🔄 จำลอง SW Click"<br />
-        4. <strong>ทดสอบจริง:</strong> กด "Send Notification" แล้วคลิกที่การแจ้งเตือน<br />
-        5. <strong>Debug:</strong> ดู Browser Console สำหรับ logs<br />
-        <br />
-        <a href="/test-notification" style={{ color: '#007cba' }}>
-          → ไปหน้าทดสอบเพิ่มเติม
-        </a>
+        <strong>วิธีใช้งาน:</strong><br />
+        1. กด "Send Notification" เพื่อส่งการแจ้งเตือน<br />
+        2. เมื่อได้รับการแจ้งเตือน ให้คลิกที่มัน<br />
+        3. ระบบจะเปิดหน้าแสดงรายละเอียดการแจ้งเตือน<br />
+        4. ดู Browser Console เพื่อดู logs การทำงาน<br />
       </div>
     </div>
   )

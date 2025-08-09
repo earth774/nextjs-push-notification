@@ -94,10 +94,13 @@ self.addEventListener('push', function(event) {
 
 // Handle notification click events
 self.addEventListener('notificationclick', function(event) {
-  console.log('=== NOTIFICATION CLICKED ===');
-  console.log('Event:', event);
-  console.log('Notification:', event.notification);
-  console.log('Notification data:', event.notification.data);
+  console.log('🔔 =========================');
+  console.log('🔔 การแจ้งเตือนถูกคลิก!');
+  console.log('🔔 =========================');
+  console.log('📱 หัวข้อ:', event.notification.title);
+  console.log('📝 เนื้อหา:', event.notification.body);
+  console.log('🆔 Tag:', event.notification.tag);
+  console.log('📊 Data:', event.notification.data);
   
   event.notification.close();
 
@@ -139,20 +142,22 @@ self.addEventListener('notificationclick', function(event) {
         type: 'window', 
         includeUncontrolled: true 
       }).then(clientList => {
-        console.log('=== NOTIFICATION CLICK: Found clients ===');
-        console.log('Clients count:', clientList.length);
-        console.log('Target URL:', notificationUrl);
+        console.log('🔍 ตรวจสอบ clients ที่เปิดอยู่...');
+        console.log('📊 จำนวน clients:', clientList.length);
+        console.log('🎯 URL ปลายทาง:', notificationUrl);
         
         // If we have existing clients (app is open)
         if (clientList.length > 0) {
-          console.log('=== APP IS OPEN - CHECKING VISIBILITY ===');
+          console.log('✅ พบ app เปิดอยู่! กำลังตรวจสอบ visibility...');
           
           // Find visible clients first
           let visibleClient = null;
           let anyClient = null;
           
           for (const client of clientList) {
-            console.log('Checking client:', client.url, 'Visibility:', client.visibilityState, 'Focused:', client.focused);
+            console.log(`🔍 Client: ${client.url}`);
+            console.log(`   👁️  Visibility: ${client.visibilityState}`);
+            console.log(`   🎯 Focused: ${client.focused}`);
             
             // Store any client as fallback
             if (!anyClient) {
@@ -162,7 +167,7 @@ self.addEventListener('notificationclick', function(event) {
             // Look for visible clients (app in foreground)
             if (client.visibilityState === 'visible' || client.focused) {
               visibleClient = client;
-              console.log('Found visible client:', client.url);
+              console.log('✅ พบ client ที่มองเห็นได้:', client.url);
               break;
             }
             
@@ -172,7 +177,7 @@ self.addEventListener('notificationclick', function(event) {
                 client.url.endsWith('/')) {
               if (!visibleClient) {
                 visibleClient = client;
-                console.log('Found main app client:', client.url);
+                console.log('✅ พบ main app client:', client.url);
               }
             }
           }
@@ -180,30 +185,31 @@ self.addEventListener('notificationclick', function(event) {
           const targetClient = visibleClient || anyClient;
           
           if (targetClient) {
-            console.log('=== NAVIGATING CLIENT ===');
-            console.log('Target client:', targetClient.url);
-            console.log('Visibility state:', targetClient.visibilityState);
+            console.log('🚀 =========================');
+            console.log('🚀 เริ่มการ navigate!');
+            console.log('🚀 =========================');
+            console.log('🎯 Target client:', targetClient.url);
+            console.log('👁️  Visibility state:', targetClient.visibilityState);
             
-            // Try multiple methods to ensure navigation works
-            console.log('=== TRYING MULTIPLE NAVIGATION METHODS ===');
+            console.log('📡 ลองส่งข้อความหลายวิธี...');
             
             // Method 1: BroadcastChannel (most reliable for PWA)
             try {
-              console.log('Method 1: Using BroadcastChannel');
+              console.log('🔄 วิธีที่ 1: BroadcastChannel');
               const channel = new BroadcastChannel('notification-navigation');
               channel.postMessage({
                 type: 'NAVIGATE_TO_NOTIFICATION',
                 url: notificationUrl
               });
               channel.close();
-              console.log('BroadcastChannel message sent');
+              console.log('✅ ส่ง BroadcastChannel สำเร็จ');
             } catch (bcError) {
-              console.log('BroadcastChannel failed:', bcError);
+              console.log('❌ BroadcastChannel ล้มเหลว:', bcError);
             }
             
             // Method 2: localStorage + event (fallback)
             try {
-              console.log('Method 2: Using localStorage trigger');
+              console.log('🔄 วิธีที่ 2: localStorage trigger');
               const navigationData = {
                 type: 'NAVIGATE_TO_NOTIFICATION',
                 url: notificationUrl,
@@ -214,59 +220,61 @@ self.addEventListener('notificationclick', function(event) {
               setTimeout(() => {
                 localStorage.removeItem('sw-navigation');
               }, 1000);
-              console.log('localStorage trigger set');
+              console.log('✅ ตั้ง localStorage trigger สำเร็จ');
             } catch (lsError) {
-              console.log('localStorage method failed:', lsError);
+              console.log('❌ localStorage ล้มเหลว:', lsError);
             }
             
             // Method 3: postMessage (traditional)
-            console.log('Method 3: Using postMessage');
+            console.log('🔄 วิธีที่ 3: postMessage');
             targetClient.postMessage({
               type: 'NAVIGATE_TO_NOTIFICATION',
               url: notificationUrl
             });
+            console.log('✅ ส่ง postMessage สำเร็จ');
             
             // Method 4: Try client.navigate if available
             if (targetClient.navigate) {
-              console.log('Method 4: Using client.navigate()');
+              console.log('🔄 วิธีที่ 4: client.navigate()');
               return targetClient.navigate(notificationUrl)
                 .then(() => {
-                  console.log('=== SUCCESS: client.navigate() worked ===');
+                  console.log('✅ client.navigate() สำเร็จ!');
                   return targetClient.focus();
                 })
                 .catch(navError => {
-                  console.log('client.navigate() failed, relying on other methods:', navError);
+                  console.log('❌ client.navigate() ล้มเหลว, พึ่งพาวิธีอื่น:', navError);
                   return targetClient.focus();
                 });
             } else {
-              console.log('client.navigate() not available, relying on messaging methods');
+              console.log('⚠️  client.navigate() ไม่พร้อมใช้งาน, พึ่งพาการส่งข้อความ');
               return targetClient.focus();
             }
           }
         }
         
         // If no existing clients or navigation failed, open new window
-        console.log('=== NO EXISTING CLIENTS - OPENING NEW WINDOW ===');
+        console.log('🆕 ไม่พบ app ที่เปิดอยู่ - เปิดหน้าต่างใหม่');
         if (clients.openWindow) {
           return clients.openWindow(notificationUrl)
             .then(windowClient => {
               if (windowClient) {
-                console.log('=== SUCCESS: New window opened ===');
+                console.log('✅ เปิดหน้าต่างใหม่สำเร็จ!');
                 return windowClient;
               } else {
-                console.log('=== FAILED: Could not open new window ===');
+                console.log('❌ ไม่สามารถเปิดหน้าต่างใหม่ได้');
               }
             });
         } else {
-          console.log('=== ERROR: openWindow not available ===');
+          console.log('❌ openWindow ไม่พร้อมใช้งาน');
         }
       })
       .catch(error => {
-        console.error('=== NOTIFICATION CLICK ERROR ===');
+        console.error('💥 เกิดข้อผิดพลาดในการจัดการ notification click:');
         console.error(error);
         
         // Last resort: try to open new window anyway
         if (clients.openWindow) {
+          console.log('🔄 ลองเปิดหน้าต่างใหม่อีกครั้ง...');
           return clients.openWindow(notificationUrl);
         }
       })

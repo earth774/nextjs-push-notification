@@ -95,15 +95,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   // Setup comprehensive message listening
                   function handleNavigationMessage(data, source = 'unknown') {
                     if (data && data.type === 'NAVIGATE_TO_NOTIFICATION') {
-                      console.log('=== EXECUTING NAVIGATION ===');
-                      console.log('Source:', source);
-                      console.log('Current visibility:', document.visibilityState);
-                      console.log('Current URL:', window.location.href);
-                      console.log('Target URL:', data.url);
+                      console.log('📨 ==============================');
+                      console.log('📨 ได้รับคำสั่ง Navigate!');
+                      console.log('📨 ==============================');
+                      console.log('📡 แหล่งที่มา:', source);
+                      console.log('👁️  App visibility:', document.visibilityState);
+                      console.log('📍 URL ปัจจุบัน:', window.location.href);
+                      console.log('🎯 URL ปลายทาง:', data.url);
                       
-                      // Force navigation immediately
-                      console.log('Navigating immediately via', source);
+                      console.log('🚀 กำลัง navigate...');
                       window.location.href = data.url;
+                      console.log('✅ Navigate command executed!');
                     }
                   }
                   
@@ -111,8 +113,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   try {
                     const navChannel = new BroadcastChannel('notification-navigation');
                     navChannel.addEventListener('message', function(event) {
-                      console.log('=== BROADCAST CHANNEL MESSAGE ===');
-                      console.log('Data:', event.data);
+                      console.log('📡 BroadcastChannel: ได้รับข้อความ');
                       handleNavigationMessage(event.data, 'BroadcastChannel');
                     });
                     console.log('BroadcastChannel listener setup complete');
@@ -123,13 +124,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   // Method 2: localStorage listener (fallback)
                   window.addEventListener('storage', function(event) {
                     if (event.key === 'sw-navigation' && event.newValue) {
-                      console.log('=== LOCALSTORAGE NAVIGATION TRIGGER ===');
+                      console.log('💾 localStorage: ได้รับ trigger');
                       try {
                         const data = JSON.parse(event.newValue);
-                        console.log('Data:', data);
                         handleNavigationMessage(data, 'localStorage');
                       } catch (parseError) {
-                        console.log('Failed to parse localStorage data:', parseError);
+                        console.log('❌ ไม่สามารถ parse localStorage data:', parseError);
                       }
                     }
                   });
@@ -153,8 +153,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   // Listen for messages from service worker
                   if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.addEventListener('message', function(event) {
-                      console.log('=== SW MESSAGE RECEIVED ===');
-                      console.log('Data:', event.data);
+                      console.log('🔧 ServiceWorker: ได้รับข้อความ');
                       handleNavigationMessage(event.data, 'ServiceWorker');
                     });
                     
