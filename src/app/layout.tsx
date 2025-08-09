@@ -128,22 +128,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                       return;
                     }
                     
-                    // Handle in-app notification display (legacy)
-                    if (data && data.type === 'SHOW_IN_APP_NOTIFICATION') {
-                      console.log('📨 ==============================');
-                      console.log('📨 ได้รับคำสั่ง แสดง In-App Notification!');
-                      console.log('📨 ==============================');
-                      console.log('📡 แหล่งที่มา:', source);
-                      console.log('👁️  App visibility:', document.visibilityState);
-                      console.log('📱 Title:', data.title);
-                      console.log('📝 Body:', data.body);
-                      console.log('🎯 URL ปลายทาง:', data.url);
-                      
-                      console.log('🔔 แสดงการแจ้งเตือนภายใน app...');
-                      showInAppNotification(data.url, data.title, data.body);
-                      return;
-                    }
-                    
                     // Handle direct navigation
                     if (data && data.type === 'NAVIGATE_TO_NOTIFICATION') {
                       console.log('📨 ==============================');
@@ -158,73 +142,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                       window.location.href = data.url;
                       console.log('✅ Navigate command executed!');
                     }
-                  }
-                  
-                  // Show in-app notification
-                  function showInAppNotification(url, titleParam = null, bodyParam = null) {
-                    // Use provided parameters or extract from URL
-                    let title, body;
-                    
-                    if (titleParam && bodyParam) {
-                      title = titleParam;
-                      body = bodyParam;
-                    } else {
-                      // Extract title and body from URL
-                      const urlObj = new URL(url, window.location.origin);
-                      title = decodeURIComponent(urlObj.searchParams.get('title') || 'การแจ้งเตือน');
-                      body = decodeURIComponent(urlObj.searchParams.get('body') || 'คลิกเพื่อดูรายละเอียด');
-                    }
-                    
-                    // Create in-app notification element
-                    const notification = document.createElement('div');
-                    notification.style.cssText = \`
-                      position: fixed;
-                      top: 20px;
-                      right: 20px;
-                      background: white;
-                      border: 1px solid #ddd;
-                      border-radius: 8px;
-                      padding: 16px;
-                      max-width: 300px;
-                      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                      z-index: 10000;
-                      cursor: pointer;
-                      transition: all 0.3s ease;
-                      font-family: system-ui, sans-serif;
-                    \`;
-                    
-                    notification.innerHTML = \`
-                      <div style="display: flex; align-items: flex-start; gap: 12px;">
-                        <div style="font-size: 24px;">🔔</div>
-                        <div style="flex: 1;">
-                          <div style="font-weight: bold; margin-bottom: 4px; color: #333;">\${title}</div>
-                          <div style="color: #666; font-size: 14px; line-height: 1.4;">\${body}</div>
-                          <div style="margin-top: 8px; font-size: 12px; color: #999;">คลิกเพื่อดูรายละเอียด</div>
-                        </div>
-                        <button style="background: none; border: none; font-size: 18px; cursor: pointer; color: #999;" onclick="this.parentElement.parentElement.remove()">×</button>
-                      </div>
-                    \`;
-                    
-                    // Add click handler
-                    notification.addEventListener('click', function(e) {
-                      if (e.target.tagName !== 'BUTTON') {
-                        console.log('🚀 คลิกการแจ้งเตือนภายใน app - กำลัง navigate...');
-                        window.location.href = url;
-                      }
-                    });
-                    
-                    // Add to page
-                    document.body.appendChild(notification);
-                    
-                    // Auto remove after 10 seconds
-                    setTimeout(() => {
-                      if (notification.parentElement) {
-                        notification.style.opacity = '0';
-                        setTimeout(() => notification.remove(), 300);
-                      }
-                    }, 10000);
-                    
-                    console.log('✅ แสดงการแจ้งเตือนภายใน app แล้ว');
                   }
                   
                   // Method 1: BroadcastChannel listener (most reliable)

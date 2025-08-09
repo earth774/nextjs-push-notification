@@ -3,8 +3,7 @@ console.log('Notification SW loaded');
 
 // Handle push events
 self.addEventListener('push', function(event) {
-  console.log('=== PUSH EVENT RECEIVED ===');
-  console.log('Event:', event);
+  console.log('🔔 Push event received');
   
   let notificationData = {
     title: 'Default Title',
@@ -20,8 +19,7 @@ self.addEventListener('push', function(event) {
   if (event.data) {
     try {
       const data = event.data.json();
-      console.log('=== PUSH DATA RECEIVED ===');
-      console.log('Data:', data);
+      console.log('📊 Push data:', data);
       
       notificationData.title = data.title || notificationData.title;
       notificationData.body = data.body || notificationData.body;
@@ -41,8 +39,7 @@ self.addEventListener('push', function(event) {
         notificationData.actions = data.actions;
       }
       
-      console.log('=== PROCESSED NOTIFICATION DATA ===');
-      console.log('Final notification data:', notificationData);
+
     } catch (e) {
       console.error('Error parsing push data:', e);
       notificationData.body = event.data.text();
@@ -55,30 +52,23 @@ self.addEventListener('push', function(event) {
       type: 'window', 
       includeUncontrolled: true 
     }).then(clientList => {
-      console.log('🔍 ===== PUSH EVENT PROCESSING =====');
-      console.log('📅 เวลา:', new Date().toLocaleString('th-TH'));
-      console.log('📊 จำนวน clients:', clientList.length);
+      console.log('🔍 Clients found:', clientList.length);
       
       let hasVisibleClient = false;
       let visibleClients = [];
       
       for (const client of clientList) {
-        console.log(`📱 Client: ${client.url}`);
-        console.log(`   👁️  Visibility: ${client.visibilityState}`);
-        console.log(`   🎯 Focused: ${client.focused}`);
-        
         if (client.visibilityState === 'visible') {
           hasVisibleClient = true;
           visibleClients.push(client);
         }
       }
       
-      console.log('🔍 App อยู่ foreground:', hasVisibleClient);
-      console.log('📊 Visible clients:', visibleClients.length);
+      console.log('📱 App in foreground:', hasVisibleClient);
       
       // If app is in foreground, send data to app but DON'T show any notification
       if (hasVisibleClient && visibleClients.length > 0) {
-        console.log('⚠️  App อยู่ foreground - ไม่แสดงการแจ้งเตือนใดๆ!');
+        console.log('🔇 Silent mode: ส่งข้อมูลแบบเงียบ');
         
         const title = encodeURIComponent(notificationData.title || 'ไม่พบหัวข้อ');
         const body = encodeURIComponent(notificationData.body || 'ไม่พบเนื้อหา');
@@ -86,11 +76,8 @@ self.addEventListener('push', function(event) {
         const notificationId = encodeURIComponent(notificationData.data?.id || Date.now().toString());
         const notificationUrl = `/notification?title=${title}&body=${body}&timestamp=${timestamp}&id=${notificationId}`;
         
-        console.log('🎯 Navigation URL:', notificationUrl);
-        
         // Send message to all visible clients (but don't show notification)
         visibleClients.forEach(client => {
-          console.log('📤 ส่งข้อมูลไปยัง app (ไม่แสดงการแจ้งเตือน):', client.url);
           
           // Method 1: BroadcastChannel
           try {
@@ -105,7 +92,7 @@ self.addEventListener('push', function(event) {
               source: 'push-foreground-silent'
             });
             channel.close();
-            console.log('✅ ส่งข้อมูลผ่าน BroadcastChannel');
+            console.log('✅ BroadcastChannel sent');
           } catch (e) {
             console.log('❌ BroadcastChannel failed:', e);
           }
@@ -120,7 +107,7 @@ self.addEventListener('push', function(event) {
             id: notificationData.data?.id || Date.now().toString(),
             source: 'push-foreground-silent'
           });
-          console.log('✅ ส่งข้อมูลผ่าน postMessage');
+          console.log('✅ postMessage sent');
           
           // Method 3: localStorage
           try {
@@ -134,22 +121,18 @@ self.addEventListener('push', function(event) {
               receivedAt: Date.now(),
               source: 'push-foreground-silent'
             }));
-            console.log('✅ บันทึกข้อมูลใน localStorage');
+            console.log('✅ localStorage saved');
           } catch (e) {
             console.log('❌ localStorage failed:', e);
           }
         });
         
-        console.log('🚫 ไม่แสดงการแจ้งเตือนใดๆ เพราะ app เปิดอยู่');
-        console.log('📊 ข้อมูลถูกส่งไปยัง app แล้ว สามารถเข้าถึงผ่าน console หรือ localStorage');
+        console.log('🔇 Silent notification completed');
         return Promise.resolve(); // Don't show any notification
       }
       
-      // Only show browser notification if app is NOT in foreground
-      console.log('📢 ===== แสดงการแจ้งเตือน browser =====');
-      console.log('📱 Title:', notificationData.title);
-      console.log('📝 Body:', notificationData.body);
-      console.log('📊 Data:', notificationData.data);
+      // Show browser notification (app not in foreground)
+      console.log('📢 แสดงการแจ้งเตือน browser:', notificationData.title);
       
       return self.registration.showNotification(notificationData.title, {
         body: notificationData.body,
@@ -185,13 +168,7 @@ self.addEventListener('push', function(event) {
 
 // Handle notification click events
 self.addEventListener('notificationclick', function(event) {
-  console.log('🔔 =========================');
-  console.log('🔔 การแจ้งเตือนถูกคลิก!');
-  console.log('🔔 =========================');
-  console.log('📱 หัวข้อ:', event.notification.title);
-  console.log('📝 เนื้อหา:', event.notification.body);
-  console.log('🆔 Tag:', event.notification.tag);
-  console.log('📊 Data:', event.notification.data);
+  console.log('🔔 Notification clicked:', event.notification.title);
   
   event.notification.close();
 
@@ -207,8 +184,7 @@ self.addEventListener('notificationclick', function(event) {
     // Check if we have data with pre-built URL
     if (notification.data && notification.data.url) {
       notificationUrl = notification.data.url;
-      console.log('=== USING PRE-BUILT URL ===');
-      console.log('URL:', notificationUrl);
+      console.log('📎 Using pre-built URL');
     } else {
       // Fallback: build URL from notification properties
       const title = encodeURIComponent(notification.title || 'ไม่พบหัวข้อ');
@@ -217,25 +193,17 @@ self.addEventListener('notificationclick', function(event) {
       const notificationId = encodeURIComponent(notification.data?.id || notification.tag || Date.now().toString());
       
       notificationUrl = `/notification?title=${title}&body=${body}&timestamp=${timestamp}&id=${notificationId}`;
-      console.log('=== BUILDING URL FROM PROPERTIES ===');
-      console.log('Title:', notification.title);
-      console.log('Body:', notification.body);
-      console.log('Timestamp:', notification.data?.timestamp);
-      console.log('ID:', notification.data?.id);
-      console.log('Built URL:', notificationUrl);
+      console.log('🔧 Building URL from properties');
     }
     
-    console.log('=== OPENING NOTIFICATION PAGE ===');
-    console.log('Final URL:', notificationUrl);
+    console.log('🚀 Opening notification page:', notificationUrl);
     
     event.waitUntil(
       clients.matchAll({ 
         type: 'window', 
         includeUncontrolled: true 
       }).then(clientList => {
-        console.log('🔍 ตรวจสอบ clients ที่เปิดอยู่...');
-        console.log('📊 จำนวน clients:', clientList.length);
-        console.log('🎯 URL ปลายทาง:', notificationUrl);
+        console.log('🔍 Checking clients:', clientList.length);
         
         // If we have existing clients (app is open)
         if (clientList.length > 0) {
