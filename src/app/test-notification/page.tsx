@@ -42,6 +42,27 @@ export default function TestNotificationPage() {
     }
   }
 
+  const testPostMessage = async () => {
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.ready
+        console.log('=== TESTING POST MESSAGE ===')
+        
+        const testUrl = `/notification?title=${encodeURIComponent('Test Message')}&body=${encodeURIComponent('Test Body from PostMessage')}&timestamp=${encodeURIComponent(new Date().toISOString())}&id=${encodeURIComponent('test-postmessage-' + Date.now())}`
+        
+        // Simulate what service worker does
+        window.postMessage({
+          type: 'NAVIGATE_TO_NOTIFICATION',
+          url: testUrl
+        }, '*')
+        
+        console.log('PostMessage sent:', testUrl)
+      } catch (error) {
+        console.error('Error testing post message:', error)
+      }
+    }
+  }
+
   return (
     <div style={{ 
       padding: '20px', 
@@ -77,10 +98,26 @@ export default function TestNotificationPage() {
             border: 'none',
             borderRadius: '8px',
             fontSize: '16px',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            marginRight: '10px'
           }}
         >
           Check Service Worker
+        </button>
+        
+        <button 
+          onClick={testPostMessage}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#ffc107',
+            color: 'black',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            cursor: 'pointer'
+          }}
+        >
+          Test PostMessage
         </button>
       </div>
       

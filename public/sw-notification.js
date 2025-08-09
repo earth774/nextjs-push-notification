@@ -109,51 +109,61 @@ self.addEventListener('notificationclick', function(event) {
     console.log('=== OPENING NOTIFICATION PAGE ===');
     console.log('Final URL:', notificationUrl);
     
-    // Simple approach: always try to open new window first
     event.waitUntil(
       (async () => {
         try {
-          console.log('=== ATTEMPTING TO OPEN NOTIFICATION PAGE ===');
-          console.log('URL:', notificationUrl);
+          console.log('=== HANDLING NOTIFICATION CLICK ===');
+          console.log('URL to open:', notificationUrl);
           
+          // Always try to open a new window/tab first
+          // This is the most reliable method across all browsers and scenarios
           if (clients.openWindow) {
-            const windowClient = await clients.openWindow(notificationUrl);
-            if (windowClient) {
-              console.log('=== SUCCESSFULLY OPENED NEW WINDOW ===');
-              return windowClient;
+            console.log('=== OPENING NEW WINDOW ===');
+            try {
+              const windowClient = await clients.openWindow(notificationUrl);
+              if (windowClient) {
+                console.log('=== SUCCESS: Opened new window ===');
+                console.log('Window client:', windowClient.url);
+                return windowClient;
+              }
+            } catch (openError) {
+              console.log('Failed to open new window:', openError);
             }
           }
           
           // Fallback: try to navigate existing clients
-          console.log('=== FALLBACK: CHECKING EXISTING CLIENTS ===');
+          console.log('=== FALLBACK: Trying existing clients ===');
           const clientList = await clients.matchAll({ 
             type: 'window', 
             includeUncontrolled: true 
           });
           
-          console.log('Found clients:', clientList.length);
+          console.log('Found existing clients:', clientList.length);
           
-          for (const client of clientList) {
-            console.log('Client URL:', client.url);
+          if (clientList.length > 0) {
+            const client = clientList[0];
+            console.log('Sending message to client:', client.url);
+            
+            // Send navigation message
+            client.postMessage({
+              type: 'NAVIGATE_TO_NOTIFICATION',
+              url: notificationUrl
+            });
+            
+            // Try to focus
             try {
-              // Send message to navigate
-              client.postMessage({
-                type: 'NAVIGATE_TO_NOTIFICATION',
-                url: notificationUrl
-              });
-              
               await client.focus();
-              console.log('=== SUCCESSFULLY NAVIGATED EXISTING CLIENT ===');
+              console.log('=== SUCCESS: Focused existing client ===');
               return client;
-            } catch (err) {
-              console.log('Failed to navigate client:', err);
-              continue;
+            } catch (focusError) {
+              console.log('Focus failed but message sent:', focusError);
+              return client;
             }
           }
           
-          console.log('=== ALL METHODS FAILED ===');
+          console.log('=== NO AVAILABLE METHODS ===');
         } catch (error) {
-          console.error('=== ERROR IN NOTIFICATION CLICK HANDLER ===');
+          console.error('=== CRITICAL ERROR ===');
           console.error('Error:', error);
         }
       })()

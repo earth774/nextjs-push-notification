@@ -91,11 +91,44 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     });
                     
                   // Listen for messages from service worker
-                  navigator.serviceWorker.addEventListener('message', function(event) {
-                    console.log('=== MESSAGE FROM SERVICE WORKER ===');
-                    console.log('Message:', event.data);
+                  if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.addEventListener('message', function(event) {
+                      console.log('=== MESSAGE FROM SERVICE WORKER RECEIVED ===');
+                      console.log('Message type:', event.data?.type);
+                      console.log('Full message:', event.data);
+                      
+                      if (event.data && event.data.type === 'NAVIGATE_TO_NOTIFICATION') {
+                        console.log('=== EXECUTING NAVIGATION ===');
+                        console.log('Navigating to:', event.data.url);
+                        
+                        // Use window.location.href for immediate navigation
+                        window.location.href = event.data.url;
+                      }
+                    });
                     
-                    if (event.data.type === 'NAVIGATE_TO_NOTIFICATION') {
+                    // Also listen on the service worker registration
+                    navigator.serviceWorker.ready.then(function(registration) {
+                      console.log('=== SETTING UP MESSAGE LISTENER ON REGISTRATION ===');
+                      registration.addEventListener('message', function(event) {
+                        console.log('=== MESSAGE FROM REGISTRATION ===');
+                        console.log('Message:', event.data);
+                        
+                        if (event.data && event.data.type === 'NAVIGATE_TO_NOTIFICATION') {
+                          console.log('Navigation via registration:', event.data.url);
+                          window.location.href = event.data.url;
+                        }
+                      });
+                    });
+                  }
+                  
+                  // Also listen for window messages (fallback)
+                  window.addEventListener('message', function(event) {
+                    console.log('=== WINDOW MESSAGE RECEIVED ===');
+                    console.log('Origin:', event.origin);
+                    console.log('Data:', event.data);
+                    
+                    if (event.data && event.data.type === 'NAVIGATE_TO_NOTIFICATION') {
+                      console.log('=== WINDOW NAVIGATION ===');
                       console.log('Navigating to:', event.data.url);
                       window.location.href = event.data.url;
                     }
