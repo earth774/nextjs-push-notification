@@ -34,7 +34,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'No active subscriptions found' }, { status: 200 })
     }
 
-    const payload = JSON.stringify({ title, body })
+    const timestamp = new Date().toISOString()
+    const notificationId = `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    const payload = JSON.stringify({ 
+      title, 
+      body, 
+      timestamp,
+      data: {
+        id: notificationId,
+        timestamp,
+        url: `/notification?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&timestamp=${encodeURIComponent(timestamp)}&id=${encodeURIComponent(notificationId)}`
+      }
+    })
 
     const results = await Promise.all(
       subscriptions.map(async (sub) => {
