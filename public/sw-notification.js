@@ -184,37 +184,64 @@ self.addEventListener('notificationclick', function(event) {
             console.log('Target client:', targetClient.url);
             console.log('Visibility state:', targetClient.visibilityState);
             
-            // Always try postMessage first for foreground apps
-            console.log('Sending postMessage to client');
+            // Try multiple methods to ensure navigation works
+            console.log('=== TRYING MULTIPLE NAVIGATION METHODS ===');
+            
+            // Method 1: BroadcastChannel (most reliable for PWA)
+            try {
+              console.log('Method 1: Using BroadcastChannel');
+              const channel = new BroadcastChannel('notification-navigation');
+              channel.postMessage({
+                type: 'NAVIGATE_TO_NOTIFICATION',
+                url: notificationUrl
+              });
+              channel.close();
+              console.log('BroadcastChannel message sent');
+            } catch (bcError) {
+              console.log('BroadcastChannel failed:', bcError);
+            }
+            
+            // Method 2: localStorage + event (fallback)
+            try {
+              console.log('Method 2: Using localStorage trigger');
+              const navigationData = {
+                type: 'NAVIGATE_TO_NOTIFICATION',
+                url: notificationUrl,
+                timestamp: Date.now()
+              };
+              localStorage.setItem('sw-navigation', JSON.stringify(navigationData));
+              // Clear after a short delay
+              setTimeout(() => {
+                localStorage.removeItem('sw-navigation');
+              }, 1000);
+              console.log('localStorage trigger set');
+            } catch (lsError) {
+              console.log('localStorage method failed:', lsError);
+            }
+            
+            // Method 3: postMessage (traditional)
+            console.log('Method 3: Using postMessage');
             targetClient.postMessage({
               type: 'NAVIGATE_TO_NOTIFICATION',
               url: notificationUrl
             });
             
-            // Try to focus the client
-            return targetClient.focus()
-              .then(() => {
-                console.log('=== SUCCESS: Client focused ===');
-                return targetClient;
-              })
-              .catch(focusError => {
-                console.log('Focus failed, but message sent:', focusError);
-                
-                // If focus fails, try navigate as fallback
-                if (targetClient.navigate) {
-                  console.log('Trying client.navigate() as fallback');
-                  return targetClient.navigate(notificationUrl)
-                    .then(() => {
-                      console.log('Navigate fallback successful');
-                      return targetClient;
-                    })
-                    .catch(navError => {
-                      console.log('Navigate fallback also failed:', navError);
-                      return targetClient;
-                    });
-                }
-                return targetClient;
-              });
+            // Method 4: Try client.navigate if available
+            if (targetClient.navigate) {
+              console.log('Method 4: Using client.navigate()');
+              return targetClient.navigate(notificationUrl)
+                .then(() => {
+                  console.log('=== SUCCESS: client.navigate() worked ===');
+                  return targetClient.focus();
+                })
+                .catch(navError => {
+                  console.log('client.navigate() failed, relying on other methods:', navError);
+                  return targetClient.focus();
+                });
+            } else {
+              console.log('client.navigate() not available, relying on messaging methods');
+              return targetClient.focus();
+            }
           }
         }
         

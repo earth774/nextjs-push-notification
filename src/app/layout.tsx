@@ -93,24 +93,61 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     });
                     
                   // Setup comprehensive message listening
-                  function handleNavigationMessage(data) {
+                  function handleNavigationMessage(data, source = 'unknown') {
                     if (data && data.type === 'NAVIGATE_TO_NOTIFICATION') {
                       console.log('=== EXECUTING NAVIGATION ===');
+                      console.log('Source:', source);
                       console.log('Current visibility:', document.visibilityState);
                       console.log('Current URL:', window.location.href);
                       console.log('Target URL:', data.url);
                       
-                      // Force navigation immediately for visible apps
-                      if (document.visibilityState === 'visible') {
-                        console.log('App is visible, navigating immediately');
-                        window.location.href = data.url;
-                      } else {
-                        console.log('App not visible, using timeout');
-                        setTimeout(() => {
-                          window.location.href = data.url;
-                        }, 100);
+                      // Force navigation immediately
+                      console.log('Navigating immediately via', source);
+                      window.location.href = data.url;
+                    }
+                  }
+                  
+                  // Method 1: BroadcastChannel listener (most reliable)
+                  try {
+                    const navChannel = new BroadcastChannel('notification-navigation');
+                    navChannel.addEventListener('message', function(event) {
+                      console.log('=== BROADCAST CHANNEL MESSAGE ===');
+                      console.log('Data:', event.data);
+                      handleNavigationMessage(event.data, 'BroadcastChannel');
+                    });
+                    console.log('BroadcastChannel listener setup complete');
+                  } catch (bcError) {
+                    console.log('BroadcastChannel not supported:', bcError);
+                  }
+                  
+                  // Method 2: localStorage listener (fallback)
+                  window.addEventListener('storage', function(event) {
+                    if (event.key === 'sw-navigation' && event.newValue) {
+                      console.log('=== LOCALSTORAGE NAVIGATION TRIGGER ===');
+                      try {
+                        const data = JSON.parse(event.newValue);
+                        console.log('Data:', data);
+                        handleNavigationMessage(data, 'localStorage');
+                      } catch (parseError) {
+                        console.log('Failed to parse localStorage data:', parseError);
                       }
                     }
+                  });
+                  
+                  // Also check localStorage on load (in case we missed the event)
+                  try {
+                    const existingNav = localStorage.getItem('sw-navigation');
+                    if (existingNav) {
+                      const data = JSON.parse(existingNav);
+                      // Only process if recent (within 5 seconds)
+                      if (Date.now() - data.timestamp < 5000) {
+                        console.log('=== FOUND EXISTING NAVIGATION REQUEST ===');
+                        handleNavigationMessage(data, 'localStorage-existing');
+                        localStorage.removeItem('sw-navigation');
+                      }
+                    }
+                  } catch (lsError) {
+                    console.log('localStorage check failed:', lsError);
                   }
                   
                   // Listen for messages from service worker
@@ -118,7 +155,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     navigator.serviceWorker.addEventListener('message', function(event) {
                       console.log('=== SW MESSAGE RECEIVED ===');
                       console.log('Data:', event.data);
-                      handleNavigationMessage(event.data);
+                      handleNavigationMessage(event.data, 'ServiceWorker');
                     });
                     
                     // Listen on service worker ready
@@ -130,7 +167,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                         registration.active.addEventListener('message', function(event) {
                           console.log('=== ACTIVE SW MESSAGE ===');
                           console.log('Data:', event.data);
-                          handleNavigationMessage(event.data);
+                          handleNavigationMessage(event.data, 'ActiveServiceWorker');
                         });
                       }
                     });
@@ -141,7 +178,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     console.log('=== WINDOW MESSAGE ===');
                     console.log('Origin:', event.origin);
                     console.log('Data:', event.data);
-                    handleNavigationMessage(event.data);
+                    handleNavigationMessage(event.data, 'Window');
                   });
                   
                   // Listen for visibility changes

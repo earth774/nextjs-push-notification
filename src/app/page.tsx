@@ -53,6 +53,24 @@ export default function HomePage() {
     }
   }
 
+  const testBroadcastChannel = () => {
+    console.log('=== TESTING BROADCAST CHANNEL ===')
+    
+    const testUrl = `/notification?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&timestamp=${encodeURIComponent(new Date().toISOString())}&id=${encodeURIComponent('bc-test-' + Date.now())}`
+    
+    try {
+      const channel = new BroadcastChannel('notification-navigation')
+      channel.postMessage({
+        type: 'NAVIGATE_TO_NOTIFICATION',
+        url: testUrl
+      })
+      channel.close()
+      console.log('BroadcastChannel message sent:', testUrl)
+    } catch (error) {
+      console.error('BroadcastChannel test failed:', error)
+    }
+  }
+
   const sendNotification = async (e: FormEvent) => {
     e.preventDefault()
     setSending(true)
@@ -185,6 +203,25 @@ export default function HomePage() {
           
           <button 
             type="button" 
+            onClick={testBroadcastChannel}
+            style={{ 
+              padding: '8px 16px',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '14px',
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
+            📡 ทดสอบ BroadcastChannel
+          </button>
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+          <button 
+            type="button" 
             onClick={simulateNotificationClick}
             style={{ 
               padding: '8px 16px',
@@ -199,25 +236,25 @@ export default function HomePage() {
           >
             🔄 จำลอง SW Click
           </button>
+          
+          <button 
+            type="button" 
+            onClick={checkAppState}
+            style={{ 
+              padding: '8px 16px',
+              backgroundColor: '#6f42c1',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '14px',
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
+            🔍 ตรวจสอบสถานะ App
+          </button>
         </div>
-        
-        <button 
-          type="button" 
-          onClick={checkAppState}
-          style={{ 
-            width: '100%',
-            padding: '6px 12px',
-            backgroundColor: '#6f42c1',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '12px',
-            cursor: 'pointer',
-            fontWeight: '500'
-          }}
-        >
-          🔍 ตรวจสอบสถานะ App
-        </button>
+
       </form>
       {status && (
         <div style={{ 
@@ -242,9 +279,10 @@ export default function HomePage() {
       }}>
         <strong>วิธีทดสอบ:</strong><br />
         1. <strong>ทดสอบการ redirect:</strong> กด "🧪 ทดสอบหน้าการแจ้งเตือน"<br />
-        2. <strong>ทดสอบ PostMessage:</strong> กด "🔄 จำลอง SW Click"<br />
-        3. <strong>ทดสอบจริง:</strong> กด "Send Notification" แล้วคลิกที่การแจ้งเตือน<br />
-        4. <strong>Debug:</strong> ดู Browser Console สำหรับ logs<br />
+        2. <strong>ทดสอบ BroadcastChannel:</strong> กด "📡 ทดสอบ BroadcastChannel"<br />
+        3. <strong>ทดสอบ PostMessage:</strong> กด "🔄 จำลอง SW Click"<br />
+        4. <strong>ทดสอบจริง:</strong> กด "Send Notification" แล้วคลิกที่การแจ้งเตือน<br />
+        5. <strong>Debug:</strong> ดู Browser Console สำหรับ logs<br />
         <br />
         <a href="/test-notification" style={{ color: '#007cba' }}>
           → ไปหน้าทดสอบเพิ่มเติม
