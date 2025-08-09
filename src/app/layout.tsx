@@ -30,9 +30,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                  console.log('Registering service worker...');
+                  console.log('=== APP LOADING ===');
                   console.log('User agent:', navigator.userAgent);
                   console.log('Platform:', navigator.platform);
+                  console.log('Document visibility:', document.visibilityState);
+                  console.log('Document hidden:', document.hidden);
                   
                   // Check if our service worker is already registered
                   navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -94,12 +96,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   function handleNavigationMessage(data) {
                     if (data && data.type === 'NAVIGATE_TO_NOTIFICATION') {
                       console.log('=== EXECUTING NAVIGATION ===');
-                      console.log('Navigating to:', data.url);
+                      console.log('Current visibility:', document.visibilityState);
+                      console.log('Current URL:', window.location.href);
+                      console.log('Target URL:', data.url);
                       
-                      // Force navigation
-                      setTimeout(() => {
+                      // Force navigation immediately for visible apps
+                      if (document.visibilityState === 'visible') {
+                        console.log('App is visible, navigating immediately');
                         window.location.href = data.url;
-                      }, 100);
+                      } else {
+                        console.log('App not visible, using timeout');
+                        setTimeout(() => {
+                          window.location.href = data.url;
+                        }, 100);
+                      }
                     }
                   }
                   
@@ -132,6 +142,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     console.log('Origin:', event.origin);
                     console.log('Data:', event.data);
                     handleNavigationMessage(event.data);
+                  });
+                  
+                  // Listen for visibility changes
+                  document.addEventListener('visibilitychange', function() {
+                    console.log('=== VISIBILITY CHANGED ===');
+                    console.log('Document visibility:', document.visibilityState);
+                    console.log('Document hidden:', document.hidden);
                   });
                 });
               } else {

@@ -49,20 +49,45 @@ self.addEventListener('push', function(event) {
     }
   }
 
-  console.log('=== SHOWING NOTIFICATION ===');
-  console.log('Title:', notificationData.title);
-  console.log('Body:', notificationData.body);
-  console.log('Data:', notificationData.data);
-
+  // Check if any clients are currently visible (app is in foreground)
   event.waitUntil(
-    self.registration.showNotification(notificationData.title, {
-      body: notificationData.body,
-      icon: notificationData.icon,
-      badge: notificationData.badge,
-      tag: notificationData.tag,
-      requireInteraction: notificationData.requireInteraction,
-      actions: notificationData.actions,
-      data: notificationData.data
+    clients.matchAll({ 
+      type: 'window', 
+      includeUncontrolled: true 
+    }).then(clientList => {
+      console.log('=== CHECKING APP VISIBILITY ===');
+      console.log('Found clients:', clientList.length);
+      
+      let hasVisibleClient = false;
+      for (const client of clientList) {
+        console.log('Client:', client.url, 'Visibility:', client.visibilityState);
+        if (client.visibilityState === 'visible') {
+          hasVisibleClient = true;
+          break;
+        }
+      }
+      
+      console.log('Has visible client (app in foreground):', hasVisibleClient);
+      
+      // Always show notification regardless of app state
+      // This ensures notification appears even when app is in foreground
+      console.log('=== SHOWING NOTIFICATION ===');
+      console.log('Title:', notificationData.title);
+      console.log('Body:', notificationData.body);
+      console.log('Data:', notificationData.data);
+      
+      return self.registration.showNotification(notificationData.title, {
+        body: notificationData.body,
+        icon: notificationData.icon,
+        badge: notificationData.badge,
+        tag: notificationData.tag,
+        requireInteraction: notificationData.requireInteraction,
+        actions: notificationData.actions,
+        data: notificationData.data,
+        // Force notification to show even when app is visible
+        silent: false,
+        renotify: true
+      });
     })
   );
 });
@@ -120,56 +145,76 @@ self.addEventListener('notificationclick', function(event) {
         
         // If we have existing clients (app is open)
         if (clientList.length > 0) {
-          console.log('=== APP IS OPEN - USING CLIENT NAVIGATION ===');
+          console.log('=== APP IS OPEN - CHECKING VISIBILITY ===');
           
-          // Find the main app client
-          let targetClient = null;
+          // Find visible clients first
+          let visibleClient = null;
+          let anyClient = null;
+          
           for (const client of clientList) {
-            console.log('Checking client:', client.url);
-            // Look for the main app or any localhost client
+            console.log('Checking client:', client.url, 'Visibility:', client.visibilityState, 'Focused:', client.focused);
+            
+            // Store any client as fallback
+            if (!anyClient) {
+              anyClient = client;
+            }
+            
+            // Look for visible clients (app in foreground)
+            if (client.visibilityState === 'visible' || client.focused) {
+              visibleClient = client;
+              console.log('Found visible client:', client.url);
+              break;
+            }
+            
+            // Also check for main app clients
             if (client.url.includes('localhost:3000') || 
                 client.url === self.registration.scope ||
                 client.url.endsWith('/')) {
-              targetClient = client;
-              console.log('Found target client:', client.url);
-              break;
+              if (!visibleClient) {
+                visibleClient = client;
+                console.log('Found main app client:', client.url);
+              }
             }
           }
           
-          // Use first client if no specific match
-          if (!targetClient && clientList.length > 0) {
-            targetClient = clientList[0];
-            console.log('Using first available client:', targetClient.url);
-          }
+          const targetClient = visibleClient || anyClient;
           
           if (targetClient) {
-            console.log('=== NAVIGATING EXISTING CLIENT ===');
+            console.log('=== NAVIGATING CLIENT ===');
+            console.log('Target client:', targetClient.url);
+            console.log('Visibility state:', targetClient.visibilityState);
             
-            // Try to navigate using the URL directly
-            if (targetClient.navigate) {
-              console.log('Using client.navigate()');
-              return targetClient.navigate(notificationUrl)
-                .then(() => {
-                  console.log('Navigation successful');
-                  return targetClient.focus();
-                })
-                .catch(navError => {
-                  console.log('Navigate failed, trying postMessage:', navError);
-                  // Fallback to postMessage
-                  targetClient.postMessage({
-                    type: 'NAVIGATE_TO_NOTIFICATION',
-                    url: notificationUrl
-                  });
-                  return targetClient.focus();
-                });
-            } else {
-              console.log('Navigate not available, using postMessage');
-              targetClient.postMessage({
-                type: 'NAVIGATE_TO_NOTIFICATION',
-                url: notificationUrl
+            // Always try postMessage first for foreground apps
+            console.log('Sending postMessage to client');
+            targetClient.postMessage({
+              type: 'NAVIGATE_TO_NOTIFICATION',
+              url: notificationUrl
+            });
+            
+            // Try to focus the client
+            return targetClient.focus()
+              .then(() => {
+                console.log('=== SUCCESS: Client focused ===');
+                return targetClient;
+              })
+              .catch(focusError => {
+                console.log('Focus failed, but message sent:', focusError);
+                
+                // If focus fails, try navigate as fallback
+                if (targetClient.navigate) {
+                  console.log('Trying client.navigate() as fallback');
+                  return targetClient.navigate(notificationUrl)
+                    .then(() => {
+                      console.log('Navigate fallback successful');
+                      return targetClient;
+                    })
+                    .catch(navError => {
+                      console.log('Navigate fallback also failed:', navError);
+                      return targetClient;
+                    });
+                }
+                return targetClient;
               });
-              return targetClient.focus();
-            }
           }
         }
         

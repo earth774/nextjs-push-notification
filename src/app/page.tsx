@@ -36,6 +36,23 @@ export default function HomePage() {
     console.log('Posted message with URL:', testUrl)
   }
 
+  const checkAppState = () => {
+    console.log('=== CHECKING APP STATE ===')
+    console.log('Document visibility:', document.visibilityState)
+    console.log('Document hidden:', document.hidden)
+    console.log('Window focused:', document.hasFocus())
+    console.log('Current URL:', window.location.href)
+    
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        console.log('SW registrations:', registrations.length)
+        registrations.forEach((reg, index) => {
+          console.log(`SW ${index + 1}:`, reg.active?.scriptURL)
+        })
+      })
+    }
+  }
+
   const sendNotification = async (e: FormEvent) => {
     e.preventDefault()
     setSending(true)
@@ -148,12 +165,11 @@ export default function HomePage() {
           {sending ? 'Sending...' : 'Send Notification'}
         </button>
         
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
           <button 
             type="button" 
             onClick={testNotificationClick}
             style={{ 
-              flex: 1,
               padding: '8px 16px',
               backgroundColor: '#28a745',
               color: 'white',
@@ -171,7 +187,6 @@ export default function HomePage() {
             type="button" 
             onClick={simulateNotificationClick}
             style={{ 
-              flex: 1,
               padding: '8px 16px',
               backgroundColor: '#17a2b8',
               color: 'white',
@@ -185,6 +200,24 @@ export default function HomePage() {
             🔄 จำลอง SW Click
           </button>
         </div>
+        
+        <button 
+          type="button" 
+          onClick={checkAppState}
+          style={{ 
+            width: '100%',
+            padding: '6px 12px',
+            backgroundColor: '#6f42c1',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '12px',
+            cursor: 'pointer',
+            fontWeight: '500'
+          }}
+        >
+          🔍 ตรวจสอบสถานะ App
+        </button>
       </form>
       {status && (
         <div style={{ 
