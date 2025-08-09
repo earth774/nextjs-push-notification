@@ -1,17 +1,10 @@
-// Custom Service Worker for Push Notifications
-console.log('Custom SW loaded');
-
-// Import and initialize the generated service worker first
-try {
-  importScripts('/sw.js');
-  console.log('Base service worker imported successfully');
-} catch (e) {
-  console.log('Base service worker not found, continuing with custom SW only');
-}
+// Dedicated Service Worker for Push Notifications
+console.log('Notification SW loaded');
 
 // Handle push events
 self.addEventListener('push', function(event) {
-  console.log('Push event received:', event);
+  console.log('=== PUSH EVENT RECEIVED ===');
+  console.log('Event:', event);
   
   let notificationData = {
     title: 'Default Title',
@@ -20,31 +13,46 @@ self.addEventListener('push', function(event) {
     badge: '/icons/icon-192x192.png',
     tag: 'push-notification',
     requireInteraction: false,
-    actions: []
+    actions: [],
+    data: {}
   };
 
   if (event.data) {
     try {
       const data = event.data.json();
-      console.log('Push data:', data);
+      console.log('=== PUSH DATA RECEIVED ===');
+      console.log('Data:', data);
       
       notificationData.title = data.title || notificationData.title;
       notificationData.body = data.body || notificationData.body;
       notificationData.icon = data.icon || notificationData.icon;
       notificationData.badge = data.badge || notificationData.badge;
       notificationData.tag = data.tag || notificationData.tag;
-      notificationData.data = data.data || {};
+      
+      // Preserve all data including timestamp and URL
+      notificationData.data = {
+        ...notificationData.data,
+        ...data.data,
+        timestamp: data.timestamp,
+        id: data.data?.id
+      };
       
       if (data.actions && Array.isArray(data.actions)) {
         notificationData.actions = data.actions;
       }
+      
+      console.log('=== PROCESSED NOTIFICATION DATA ===');
+      console.log('Final notification data:', notificationData);
     } catch (e) {
       console.error('Error parsing push data:', e);
       notificationData.body = event.data.text();
     }
   }
 
-  console.log('Showing notification:', notificationData);
+  console.log('=== SHOWING NOTIFICATION ===');
+  console.log('Title:', notificationData.title);
+  console.log('Body:', notificationData.body);
+  console.log('Data:', notificationData.data);
 
   event.waitUntil(
     self.registration.showNotification(notificationData.title, {
@@ -61,7 +69,7 @@ self.addEventListener('push', function(event) {
 
 // Handle notification click events
 self.addEventListener('notificationclick', function(event) {
-  console.log('=== CUSTOM SW: Notification clicked ===');
+  console.log('=== NOTIFICATION CLICKED ===');
   console.log('Event:', event);
   console.log('Notification:', event.notification);
   console.log('Notification data:', event.notification.data);
@@ -80,7 +88,7 @@ self.addEventListener('notificationclick', function(event) {
     // Check if we have data with pre-built URL
     if (notification.data && notification.data.url) {
       notificationUrl = notification.data.url;
-      console.log('=== Using pre-built URL from notification data ===');
+      console.log('=== USING PRE-BUILT URL ===');
       console.log('URL:', notificationUrl);
     } else {
       // Fallback: build URL from notification properties
@@ -90,39 +98,62 @@ self.addEventListener('notificationclick', function(event) {
       const notificationId = encodeURIComponent(notification.data?.id || notification.tag || Date.now().toString());
       
       notificationUrl = `/notification?title=${title}&body=${body}&timestamp=${timestamp}&id=${notificationId}`;
-      console.log('=== Built URL from notification properties ===');
+      console.log('=== BUILDING URL FROM PROPERTIES ===');
       console.log('Title:', notification.title);
       console.log('Body:', notification.body);
-      console.log('URL:', notificationUrl);
+      console.log('Timestamp:', notification.data?.timestamp);
+      console.log('ID:', notification.data?.id);
+      console.log('Built URL:', notificationUrl);
     }
     
-    console.log('=== Final notification URL ===');
-    console.log('URL to open:', notificationUrl);
+    console.log('=== OPENING NOTIFICATION PAGE ===');
+    console.log('Final URL:', notificationUrl);
     
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+        console.log('=== CHECKING EXISTING CLIENTS ===');
+        console.log('Found clients:', clientList.length);
+        
         // Check if notification page is already open
         for (let i = 0; i < clientList.length; i++) {
           const client = clientList[i];
-          if (client.url.includes('/notification') && 'focus' in client) {
-            // Navigate to new notification if already on notification page
-            return client.navigate(self.registration.scope + notificationUrl.substring(1)).then(() => client.focus());
+          console.log('Client URL:', client.url);
+          if (client.url.includes('/notification') && 'navigate' in client) {
+            console.log('=== NAVIGATING EXISTING NOTIFICATION PAGE ===');
+            const fullUrl = new URL(notificationUrl, self.registration.scope).href;
+            return client.navigate(fullUrl).then(() => {
+              console.log('Navigation successful, focusing client');
+              return client.focus();
+            });
           }
         }
         
         // Check if main app is open
         for (let i = 0; i < clientList.length; i++) {
           const client = clientList[i];
-          if (client.url === self.registration.scope && 'focus' in client) {
-            // Navigate to notification page
-            return client.navigate(self.registration.scope + notificationUrl.substring(1)).then(() => client.focus());
+          if ((client.url === self.registration.scope || client.url.endsWith('/')) && 'navigate' in client) {
+            console.log('=== NAVIGATING FROM MAIN PAGE ===');
+            const fullUrl = new URL(notificationUrl, self.registration.scope).href;
+            return client.navigate(fullUrl).then(() => {
+              console.log('Navigation successful, focusing client');
+              return client.focus();
+            });
           }
         }
         
         // Otherwise, open a new window/tab with notification details
         if (clients.openWindow) {
-          return clients.openWindow(notificationUrl);
+          console.log('=== OPENING NEW WINDOW ===');
+          const fullUrl = new URL(notificationUrl, self.registration.scope).href;
+          console.log('Opening URL:', fullUrl);
+          return clients.openWindow(fullUrl);
+        } else {
+          console.log('=== CANNOT OPEN WINDOW ===');
+          console.log('clients.openWindow not available');
         }
+      }).catch(error => {
+        console.error('=== ERROR IN NOTIFICATION CLICK HANDLER ===');
+        console.error('Error:', error);
       })
     );
   }
@@ -130,9 +161,18 @@ self.addEventListener('notificationclick', function(event) {
 
 // Handle notification close events
 self.addEventListener('notificationclose', function(event) {
-  console.log('Notification closed:', event);
-  // You can track analytics here if needed
+  console.log('=== NOTIFICATION CLOSED ===');
+  console.log('Event:', event);
 });
 
-// Note: Base service worker already imported at the top
-// Our custom handlers below will override the default ones
+// Handle service worker installation
+self.addEventListener('install', function(event) {
+  console.log('=== SERVICE WORKER INSTALLING ===');
+  self.skipWaiting();
+});
+
+// Handle service worker activation
+self.addEventListener('activate', function(event) {
+  console.log('=== SERVICE WORKER ACTIVATED ===');
+  event.waitUntil(clients.claim());
+});

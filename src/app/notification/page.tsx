@@ -12,6 +12,14 @@ function NotificationContent() {
   const timestamp = searchParams.get('timestamp') || new Date().toISOString()
   const notificationId = searchParams.get('id') || 'unknown'
 
+  // Debug logging
+  console.log('=== NOTIFICATION PAGE LOADED ===')
+  console.log('Search params:', Object.fromEntries(searchParams.entries()))
+  console.log('Title:', title)
+  console.log('Body:', body)
+  console.log('Timestamp:', timestamp)
+  console.log('ID:', notificationId)
+
   // แปลงเวลาให้เป็นภาษาไทย
   const formatTimestamp = (isoString: string) => {
     try {

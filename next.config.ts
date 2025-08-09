@@ -9,12 +9,14 @@ const withPWA = require('next-pwa')({
     /app-build-manifest\.json$/,
     /_buildManifest\.js$/,
     /_ssgManifest\.js$/,
-    /sw-custom\.js$/
+    /sw-custom\.js$/,
+    /sw-notification\.js$/
   ],
   publicExcludes: [
     '!robots.txt',
     '!sitemap.xml',
-    '!sw-custom.js'
+    '!sw-custom.js',
+    '!sw-notification.js'
   ],
   fallbacks: {
     document: '/offline'

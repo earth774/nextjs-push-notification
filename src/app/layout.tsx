@@ -34,16 +34,39 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   console.log('User agent:', navigator.userAgent);
                   console.log('Platform:', navigator.platform);
                   
-                  navigator.serviceWorker.register('/sw-custom.js', {
-                    scope: '/'
+                  // Unregister any existing service workers first
+                  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    console.log('Found existing registrations:', registrations.length);
+                    for(let registration of registrations) {
+                      console.log('Unregistering:', registration.scope);
+                      registration.unregister();
+                    }
+                  }).then(() => {
+                    // Register our notification service worker
+                    return navigator.serviceWorker.register('/sw-notification.js', {
+                      scope: '/'
+                    });
                   })
                     .then(function(registration) {
-                      console.log('SW registered successfully:', registration);
+                      console.log('Custom SW registered successfully:', registration);
                       console.log('SW scope:', registration.scope);
+                      console.log('SW active:', registration.active);
+                      console.log('SW installing:', registration.installing);
+                      console.log('SW waiting:', registration.waiting);
                       
                       // Handle updates
                       registration.addEventListener('updatefound', () => {
                         console.log('SW update found');
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                          newWorker.addEventListener('statechange', () => {
+                            console.log('SW state changed:', newWorker.state);
+                            if (newWorker.state === 'activated') {
+                              console.log('New SW activated, reloading page');
+                              window.location.reload();
+                            }
+                          });
+                        }
                       });
                     })
                     .catch(function(registrationError) {

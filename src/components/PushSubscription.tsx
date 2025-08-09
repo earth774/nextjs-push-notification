@@ -124,7 +124,7 @@ export default function PushSubscription() {
       } catch (timeoutError) {
         console.log('No existing service worker, registering new one...')
         // ถ้าไม่มี service worker ให้ register เอง
-        registration = await navigator.serviceWorker.register('/sw-custom.js')
+        registration = await navigator.serviceWorker.register('/sw-notification.js')
         console.log('New service worker registered:', registration)
         
         // รอให้ service worker พร้อมใช้งาน
