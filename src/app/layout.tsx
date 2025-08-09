@@ -103,10 +103,75 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                       console.log('📍 URL ปัจจุบัน:', window.location.href);
                       console.log('🎯 URL ปลายทาง:', data.url);
                       
-                      console.log('🚀 กำลัง navigate...');
-                      window.location.href = data.url;
-                      console.log('✅ Navigate command executed!');
+                      // If from push-foreground, show in-app notification first
+                      if (data.source === 'push-foreground') {
+                        console.log('🔔 แสดงการแจ้งเตือนภายใน app ก่อน...');
+                        showInAppNotification(data.url);
+                      } else {
+                        console.log('🚀 กำลัง navigate ทันที...');
+                        window.location.href = data.url;
+                        console.log('✅ Navigate command executed!');
+                      }
                     }
+                  }
+                  
+                  // Show in-app notification
+                  function showInAppNotification(url) {
+                    // Extract title and body from URL
+                    const urlObj = new URL(url, window.location.origin);
+                    const title = decodeURIComponent(urlObj.searchParams.get('title') || 'การแจ้งเตือน');
+                    const body = decodeURIComponent(urlObj.searchParams.get('body') || 'คลิกเพื่อดูรายละเอียด');
+                    
+                    // Create in-app notification element
+                    const notification = document.createElement('div');
+                    notification.style.cssText = \`
+                      position: fixed;
+                      top: 20px;
+                      right: 20px;
+                      background: white;
+                      border: 1px solid #ddd;
+                      border-radius: 8px;
+                      padding: 16px;
+                      max-width: 300px;
+                      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                      z-index: 10000;
+                      cursor: pointer;
+                      transition: all 0.3s ease;
+                      font-family: system-ui, sans-serif;
+                    \`;
+                    
+                    notification.innerHTML = \`
+                      <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <div style="font-size: 24px;">🔔</div>
+                        <div style="flex: 1;">
+                          <div style="font-weight: bold; margin-bottom: 4px; color: #333;">\${title}</div>
+                          <div style="color: #666; font-size: 14px; line-height: 1.4;">\${body}</div>
+                          <div style="margin-top: 8px; font-size: 12px; color: #999;">คลิกเพื่อดูรายละเอียด</div>
+                        </div>
+                        <button style="background: none; border: none; font-size: 18px; cursor: pointer; color: #999;" onclick="this.parentElement.parentElement.remove()">×</button>
+                      </div>
+                    \`;
+                    
+                    // Add click handler
+                    notification.addEventListener('click', function(e) {
+                      if (e.target.tagName !== 'BUTTON') {
+                        console.log('🚀 คลิกการแจ้งเตือนภายใน app - กำลัง navigate...');
+                        window.location.href = url;
+                      }
+                    });
+                    
+                    // Add to page
+                    document.body.appendChild(notification);
+                    
+                    // Auto remove after 10 seconds
+                    setTimeout(() => {
+                      if (notification.parentElement) {
+                        notification.style.opacity = '0';
+                        setTimeout(() => notification.remove(), 300);
+                      }
+                    }, 10000);
+                    
+                    console.log('✅ แสดงการแจ้งเตือนภายใน app แล้ว');
                   }
                   
                   // Method 1: BroadcastChannel listener (most reliable)

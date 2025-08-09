@@ -55,38 +55,113 @@ self.addEventListener('push', function(event) {
       type: 'window', 
       includeUncontrolled: true 
     }).then(clientList => {
-      console.log('=== CHECKING APP VISIBILITY ===');
-      console.log('Found clients:', clientList.length);
+      console.log('🔍 ===== PUSH EVENT PROCESSING =====');
+      console.log('📅 เวลา:', new Date().toLocaleString('th-TH'));
+      console.log('📊 จำนวน clients:', clientList.length);
       
       let hasVisibleClient = false;
+      let visibleClients = [];
+      
       for (const client of clientList) {
-        console.log('Client:', client.url, 'Visibility:', client.visibilityState);
+        console.log(`📱 Client: ${client.url}`);
+        console.log(`   👁️  Visibility: ${client.visibilityState}`);
+        console.log(`   🎯 Focused: ${client.focused}`);
+        
         if (client.visibilityState === 'visible') {
           hasVisibleClient = true;
-          break;
+          visibleClients.push(client);
         }
       }
       
-      console.log('Has visible client (app in foreground):', hasVisibleClient);
+      console.log('🔍 App อยู่ foreground:', hasVisibleClient);
+      console.log('📊 Visible clients:', visibleClients.length);
       
-      // Always show notification regardless of app state
-      // This ensures notification appears even when app is in foreground
-      console.log('=== SHOWING NOTIFICATION ===');
-      console.log('Title:', notificationData.title);
-      console.log('Body:', notificationData.body);
-      console.log('Data:', notificationData.data);
+      // If app is in foreground, send direct navigation message
+      if (hasVisibleClient && visibleClients.length > 0) {
+        console.log('⚠️  App อยู่ foreground - ส่งข้อความตรงไปยัง app!');
+        
+        const title = encodeURIComponent(notificationData.title || 'ไม่พบหัวข้อ');
+        const body = encodeURIComponent(notificationData.body || 'ไม่พบเนื้อหา');
+        const timestamp = encodeURIComponent(notificationData.data?.timestamp || new Date().toISOString());
+        const notificationId = encodeURIComponent(notificationData.data?.id || Date.now().toString());
+        const notificationUrl = `/notification?title=${title}&body=${body}&timestamp=${timestamp}&id=${notificationId}`;
+        
+        console.log('🎯 Navigation URL:', notificationUrl);
+        
+        // Send message to all visible clients
+        visibleClients.forEach(client => {
+          console.log('📤 ส่งข้อความไปยัง:', client.url);
+          
+          // Method 1: BroadcastChannel
+          try {
+            const channel = new BroadcastChannel('notification-navigation');
+            channel.postMessage({
+              type: 'NAVIGATE_TO_NOTIFICATION',
+              url: notificationUrl,
+              source: 'push-foreground'
+            });
+            channel.close();
+            console.log('✅ BroadcastChannel sent');
+          } catch (e) {
+            console.log('❌ BroadcastChannel failed:', e);
+          }
+          
+          // Method 2: postMessage
+          client.postMessage({
+            type: 'NAVIGATE_TO_NOTIFICATION',
+            url: notificationUrl,
+            source: 'push-foreground'
+          });
+          console.log('✅ postMessage sent');
+          
+          // Method 3: localStorage
+          try {
+            localStorage.setItem('sw-navigation', JSON.stringify({
+              type: 'NAVIGATE_TO_NOTIFICATION',
+              url: notificationUrl,
+              timestamp: Date.now(),
+              source: 'push-foreground'
+            }));
+            console.log('✅ localStorage set');
+          } catch (e) {
+            console.log('❌ localStorage failed:', e);
+          }
+        });
+      }
+      
+      // ALWAYS show notification regardless of app state
+      console.log('📢 ===== แสดงการแจ้งเตือน =====');
+      console.log('📱 Title:', notificationData.title);
+      console.log('📝 Body:', notificationData.body);
+      console.log('📊 Data:', notificationData.data);
       
       return self.registration.showNotification(notificationData.title, {
         body: notificationData.body,
         icon: notificationData.icon,
         badge: notificationData.badge,
-        tag: notificationData.tag,
-        requireInteraction: notificationData.requireInteraction,
+        tag: notificationData.tag + '-' + Date.now(), // Unique tag to force show
+        requireInteraction: true, // Force user interaction
         actions: notificationData.actions,
         data: notificationData.data,
-        // Force notification to show even when app is visible
         silent: false,
-        renotify: true
+        renotify: true,
+        vibrate: [200, 100, 200] // Add vibration
+      }).then(() => {
+        console.log('✅ การแจ้งเตือนแสดงสำเร็จ!');
+      }).catch(error => {
+        console.error('❌ ไม่สามารถแสดงการแจ้งเตือนได้:', error);
+      });
+    }).catch(error => {
+      console.error('❌ Error in push event:', error);
+      
+      // Fallback: show notification anyway
+      return self.registration.showNotification(notificationData.title, {
+        body: notificationData.body,
+        icon: notificationData.icon,
+        badge: notificationData.badge,
+        tag: 'fallback-' + Date.now(),
+        requireInteraction: true,
+        data: notificationData.data
       });
     })
   );
