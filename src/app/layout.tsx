@@ -90,48 +90,48 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                       console.error('Error details:', registrationError.message);
                     });
                     
+                  // Setup comprehensive message listening
+                  function handleNavigationMessage(data) {
+                    if (data && data.type === 'NAVIGATE_TO_NOTIFICATION') {
+                      console.log('=== EXECUTING NAVIGATION ===');
+                      console.log('Navigating to:', data.url);
+                      
+                      // Force navigation
+                      setTimeout(() => {
+                        window.location.href = data.url;
+                      }, 100);
+                    }
+                  }
+                  
                   // Listen for messages from service worker
                   if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.addEventListener('message', function(event) {
-                      console.log('=== MESSAGE FROM SERVICE WORKER RECEIVED ===');
-                      console.log('Message type:', event.data?.type);
-                      console.log('Full message:', event.data);
-                      
-                      if (event.data && event.data.type === 'NAVIGATE_TO_NOTIFICATION') {
-                        console.log('=== EXECUTING NAVIGATION ===');
-                        console.log('Navigating to:', event.data.url);
-                        
-                        // Use window.location.href for immediate navigation
-                        window.location.href = event.data.url;
-                      }
+                      console.log('=== SW MESSAGE RECEIVED ===');
+                      console.log('Data:', event.data);
+                      handleNavigationMessage(event.data);
                     });
                     
-                    // Also listen on the service worker registration
+                    // Listen on service worker ready
                     navigator.serviceWorker.ready.then(function(registration) {
-                      console.log('=== SETTING UP MESSAGE LISTENER ON REGISTRATION ===');
-                      registration.addEventListener('message', function(event) {
-                        console.log('=== MESSAGE FROM REGISTRATION ===');
-                        console.log('Message:', event.data);
-                        
-                        if (event.data && event.data.type === 'NAVIGATE_TO_NOTIFICATION') {
-                          console.log('Navigation via registration:', event.data.url);
-                          window.location.href = event.data.url;
-                        }
-                      });
+                      console.log('=== SW READY - SETTING UP LISTENERS ===');
+                      
+                      // Listen on the active service worker
+                      if (registration.active) {
+                        registration.active.addEventListener('message', function(event) {
+                          console.log('=== ACTIVE SW MESSAGE ===');
+                          console.log('Data:', event.data);
+                          handleNavigationMessage(event.data);
+                        });
+                      }
                     });
                   }
                   
-                  // Also listen for window messages (fallback)
+                  // Window message listener (fallback)
                   window.addEventListener('message', function(event) {
-                    console.log('=== WINDOW MESSAGE RECEIVED ===');
+                    console.log('=== WINDOW MESSAGE ===');
                     console.log('Origin:', event.origin);
                     console.log('Data:', event.data);
-                    
-                    if (event.data && event.data.type === 'NAVIGATE_TO_NOTIFICATION') {
-                      console.log('=== WINDOW NAVIGATION ===');
-                      console.log('Navigating to:', event.data.url);
-                      window.location.href = event.data.url;
-                    }
+                    handleNavigationMessage(event.data);
                   });
                 });
               } else {

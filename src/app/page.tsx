@@ -21,6 +21,21 @@ export default function HomePage() {
     window.location.href = testUrl
   }
 
+  const simulateNotificationClick = async () => {
+    console.log('=== SIMULATING SERVICE WORKER NOTIFICATION CLICK ===')
+    
+    // Send a message to simulate what the service worker would do
+    const testUrl = `/notification?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&timestamp=${encodeURIComponent(new Date().toISOString())}&id=${encodeURIComponent('sw-test-' + Date.now())}`
+    
+    // Post message to window (simulating service worker postMessage)
+    window.postMessage({
+      type: 'NAVIGATE_TO_NOTIFICATION',
+      url: testUrl
+    }, '*')
+    
+    console.log('Posted message with URL:', testUrl)
+  }
+
   const sendNotification = async (e: FormEvent) => {
     e.preventDefault()
     setSending(true)
@@ -133,23 +148,43 @@ export default function HomePage() {
           {sending ? 'Sending...' : 'Send Notification'}
         </button>
         
-        <button 
-          type="button" 
-          onClick={testNotificationClick}
-          style={{ 
-            width: '100%',
-            padding: '8px 16px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '14px',
-            cursor: 'pointer',
-            fontWeight: '500'
-          }}
-        >
-          🧪 ทดสอบหน้าการแจ้งเตือน
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            type="button" 
+            onClick={testNotificationClick}
+            style={{ 
+              flex: 1,
+              padding: '8px 16px',
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '14px',
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
+            🧪 ทดสอบหน้าการแจ้งเตือน
+          </button>
+          
+          <button 
+            type="button" 
+            onClick={simulateNotificationClick}
+            style={{ 
+              flex: 1,
+              padding: '8px 16px',
+              backgroundColor: '#17a2b8',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '14px',
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
+            🔄 จำลอง SW Click
+          </button>
+        </div>
       </form>
       {status && (
         <div style={{ 
@@ -173,13 +208,13 @@ export default function HomePage() {
         fontSize: '12px'
       }}>
         <strong>วิธีทดสอบ:</strong><br />
-        1. กด "Send Notification" เพื่อส่งการแจ้งเตือน<br />
-        2. เมื่อได้รับการแจ้งเตือน ให้คลิกที่มัน<br />
-        3. ระบบจะเปิดหน้าใหม่แสดงรายละเอียดการแจ้งเตือน<br />
-        4. ดู Browser Console สำหรับ debug logs<br />
+        1. <strong>ทดสอบการ redirect:</strong> กด "🧪 ทดสอบหน้าการแจ้งเตือน"<br />
+        2. <strong>ทดสอบ PostMessage:</strong> กด "🔄 จำลอง SW Click"<br />
+        3. <strong>ทดสอบจริง:</strong> กด "Send Notification" แล้วคลิกที่การแจ้งเตือน<br />
+        4. <strong>Debug:</strong> ดู Browser Console สำหรับ logs<br />
         <br />
         <a href="/test-notification" style={{ color: '#007cba' }}>
-          → ไปหน้าทดสอบ
+          → ไปหน้าทดสอบเพิ่มเติม
         </a>
       </div>
     </div>

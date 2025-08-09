@@ -110,63 +110,94 @@ self.addEventListener('notificationclick', function(event) {
     console.log('Final URL:', notificationUrl);
     
     event.waitUntil(
-      (async () => {
-        try {
-          console.log('=== HANDLING NOTIFICATION CLICK ===');
-          console.log('URL to open:', notificationUrl);
+      clients.matchAll({ 
+        type: 'window', 
+        includeUncontrolled: true 
+      }).then(clientList => {
+        console.log('=== NOTIFICATION CLICK: Found clients ===');
+        console.log('Clients count:', clientList.length);
+        console.log('Target URL:', notificationUrl);
+        
+        // If we have existing clients (app is open)
+        if (clientList.length > 0) {
+          console.log('=== APP IS OPEN - USING CLIENT NAVIGATION ===');
           
-          // Always try to open a new window/tab first
-          // This is the most reliable method across all browsers and scenarios
-          if (clients.openWindow) {
-            console.log('=== OPENING NEW WINDOW ===');
-            try {
-              const windowClient = await clients.openWindow(notificationUrl);
-              if (windowClient) {
-                console.log('=== SUCCESS: Opened new window ===');
-                console.log('Window client:', windowClient.url);
-                return windowClient;
-              }
-            } catch (openError) {
-              console.log('Failed to open new window:', openError);
+          // Find the main app client
+          let targetClient = null;
+          for (const client of clientList) {
+            console.log('Checking client:', client.url);
+            // Look for the main app or any localhost client
+            if (client.url.includes('localhost:3000') || 
+                client.url === self.registration.scope ||
+                client.url.endsWith('/')) {
+              targetClient = client;
+              console.log('Found target client:', client.url);
+              break;
             }
           }
           
-          // Fallback: try to navigate existing clients
-          console.log('=== FALLBACK: Trying existing clients ===');
-          const clientList = await clients.matchAll({ 
-            type: 'window', 
-            includeUncontrolled: true 
-          });
-          
-          console.log('Found existing clients:', clientList.length);
-          
-          if (clientList.length > 0) {
-            const client = clientList[0];
-            console.log('Sending message to client:', client.url);
-            
-            // Send navigation message
-            client.postMessage({
-              type: 'NAVIGATE_TO_NOTIFICATION',
-              url: notificationUrl
-            });
-            
-            // Try to focus
-            try {
-              await client.focus();
-              console.log('=== SUCCESS: Focused existing client ===');
-              return client;
-            } catch (focusError) {
-              console.log('Focus failed but message sent:', focusError);
-              return client;
-            }
+          // Use first client if no specific match
+          if (!targetClient && clientList.length > 0) {
+            targetClient = clientList[0];
+            console.log('Using first available client:', targetClient.url);
           }
           
-          console.log('=== NO AVAILABLE METHODS ===');
-        } catch (error) {
-          console.error('=== CRITICAL ERROR ===');
-          console.error('Error:', error);
+          if (targetClient) {
+            console.log('=== NAVIGATING EXISTING CLIENT ===');
+            
+            // Try to navigate using the URL directly
+            if (targetClient.navigate) {
+              console.log('Using client.navigate()');
+              return targetClient.navigate(notificationUrl)
+                .then(() => {
+                  console.log('Navigation successful');
+                  return targetClient.focus();
+                })
+                .catch(navError => {
+                  console.log('Navigate failed, trying postMessage:', navError);
+                  // Fallback to postMessage
+                  targetClient.postMessage({
+                    type: 'NAVIGATE_TO_NOTIFICATION',
+                    url: notificationUrl
+                  });
+                  return targetClient.focus();
+                });
+            } else {
+              console.log('Navigate not available, using postMessage');
+              targetClient.postMessage({
+                type: 'NAVIGATE_TO_NOTIFICATION',
+                url: notificationUrl
+              });
+              return targetClient.focus();
+            }
+          }
         }
-      })()
+        
+        // If no existing clients or navigation failed, open new window
+        console.log('=== NO EXISTING CLIENTS - OPENING NEW WINDOW ===');
+        if (clients.openWindow) {
+          return clients.openWindow(notificationUrl)
+            .then(windowClient => {
+              if (windowClient) {
+                console.log('=== SUCCESS: New window opened ===');
+                return windowClient;
+              } else {
+                console.log('=== FAILED: Could not open new window ===');
+              }
+            });
+        } else {
+          console.log('=== ERROR: openWindow not available ===');
+        }
+      })
+      .catch(error => {
+        console.error('=== NOTIFICATION CLICK ERROR ===');
+        console.error(error);
+        
+        // Last resort: try to open new window anyway
+        if (clients.openWindow) {
+          return clients.openWindow(notificationUrl);
+        }
+      })
     );
   }
 });
