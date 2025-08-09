@@ -109,52 +109,54 @@ self.addEventListener('notificationclick', function(event) {
     console.log('=== OPENING NOTIFICATION PAGE ===');
     console.log('Final URL:', notificationUrl);
     
+    // Simple approach: always try to open new window first
     event.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-        console.log('=== CHECKING EXISTING CLIENTS ===');
-        console.log('Found clients:', clientList.length);
-        
-        // Check if notification page is already open
-        for (let i = 0; i < clientList.length; i++) {
-          const client = clientList[i];
-          console.log('Client URL:', client.url);
-          if (client.url.includes('/notification') && 'navigate' in client) {
-            console.log('=== NAVIGATING EXISTING NOTIFICATION PAGE ===');
-            const fullUrl = new URL(notificationUrl, self.registration.scope).href;
-            return client.navigate(fullUrl).then(() => {
-              console.log('Navigation successful, focusing client');
-              return client.focus();
-            });
+      (async () => {
+        try {
+          console.log('=== ATTEMPTING TO OPEN NOTIFICATION PAGE ===');
+          console.log('URL:', notificationUrl);
+          
+          if (clients.openWindow) {
+            const windowClient = await clients.openWindow(notificationUrl);
+            if (windowClient) {
+              console.log('=== SUCCESSFULLY OPENED NEW WINDOW ===');
+              return windowClient;
+            }
           }
-        }
-        
-        // Check if main app is open
-        for (let i = 0; i < clientList.length; i++) {
-          const client = clientList[i];
-          if ((client.url === self.registration.scope || client.url.endsWith('/')) && 'navigate' in client) {
-            console.log('=== NAVIGATING FROM MAIN PAGE ===');
-            const fullUrl = new URL(notificationUrl, self.registration.scope).href;
-            return client.navigate(fullUrl).then(() => {
-              console.log('Navigation successful, focusing client');
-              return client.focus();
-            });
+          
+          // Fallback: try to navigate existing clients
+          console.log('=== FALLBACK: CHECKING EXISTING CLIENTS ===');
+          const clientList = await clients.matchAll({ 
+            type: 'window', 
+            includeUncontrolled: true 
+          });
+          
+          console.log('Found clients:', clientList.length);
+          
+          for (const client of clientList) {
+            console.log('Client URL:', client.url);
+            try {
+              // Send message to navigate
+              client.postMessage({
+                type: 'NAVIGATE_TO_NOTIFICATION',
+                url: notificationUrl
+              });
+              
+              await client.focus();
+              console.log('=== SUCCESSFULLY NAVIGATED EXISTING CLIENT ===');
+              return client;
+            } catch (err) {
+              console.log('Failed to navigate client:', err);
+              continue;
+            }
           }
+          
+          console.log('=== ALL METHODS FAILED ===');
+        } catch (error) {
+          console.error('=== ERROR IN NOTIFICATION CLICK HANDLER ===');
+          console.error('Error:', error);
         }
-        
-        // Otherwise, open a new window/tab with notification details
-        if (clients.openWindow) {
-          console.log('=== OPENING NEW WINDOW ===');
-          const fullUrl = new URL(notificationUrl, self.registration.scope).href;
-          console.log('Opening URL:', fullUrl);
-          return clients.openWindow(fullUrl);
-        } else {
-          console.log('=== CANNOT OPEN WINDOW ===');
-          console.log('clients.openWindow not available');
-        }
-      }).catch(error => {
-        console.error('=== ERROR IN NOTIFICATION CLICK HANDLER ===');
-        console.error('Error:', error);
-      })
+      })()
     );
   }
 });

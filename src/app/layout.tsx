@@ -34,17 +34,33 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   console.log('User agent:', navigator.userAgent);
                   console.log('Platform:', navigator.platform);
                   
-                  // Unregister any existing service workers first
+                  // Check if our service worker is already registered
                   navigator.serviceWorker.getRegistrations().then(function(registrations) {
                     console.log('Found existing registrations:', registrations.length);
-                    for(let registration of registrations) {
-                      console.log('Unregistering:', registration.scope);
-                      registration.unregister();
+                    
+                    // Check if sw-notification.js is already registered
+                    const notificationSW = registrations.find(reg => 
+                      reg.active && reg.active.scriptURL.includes('sw-notification.js')
+                    );
+                    
+                    if (notificationSW) {
+                      console.log('Notification SW already registered:', notificationSW.scope);
+                      return notificationSW;
                     }
-                  }).then(() => {
-                    // Register our notification service worker
-                    return navigator.serviceWorker.register('/sw-notification.js', {
-                      scope: '/'
+                    
+                    // Unregister other service workers but keep sw-notification.js
+                    const unregisterPromises = registrations
+                      .filter(reg => !reg.active || !reg.active.scriptURL.includes('sw-notification.js'))
+                      .map(reg => {
+                        console.log('Unregistering:', reg.scope);
+                        return reg.unregister();
+                      });
+                    
+                    return Promise.all(unregisterPromises).then(() => {
+                      // Register our notification service worker
+                      return navigator.serviceWorker.register('/sw-notification.js', {
+                        scope: '/'
+                      });
                     });
                   })
                     .then(function(registration) {
@@ -62,8 +78,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                           newWorker.addEventListener('statechange', () => {
                             console.log('SW state changed:', newWorker.state);
                             if (newWorker.state === 'activated') {
-                              console.log('New SW activated, reloading page');
-                              window.location.reload();
+                              console.log('New SW activated');
+                              // Don't auto-reload to prevent reload loops
                             }
                           });
                         }
@@ -73,6 +89,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                       console.error('SW registration failed:', registrationError);
                       console.error('Error details:', registrationError.message);
                     });
+                    
+                  // Listen for messages from service worker
+                  navigator.serviceWorker.addEventListener('message', function(event) {
+                    console.log('=== MESSAGE FROM SERVICE WORKER ===');
+                    console.log('Message:', event.data);
+                    
+                    if (event.data.type === 'NAVIGATE_TO_NOTIFICATION') {
+                      console.log('Navigating to:', event.data.url);
+                      window.location.href = event.data.url;
+                    }
+                  });
                 });
               } else {
                 console.log('Service Worker not supported in this browser');

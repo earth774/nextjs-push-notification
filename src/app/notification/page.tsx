@@ -245,7 +245,10 @@ export default function NotificationPage() {
         textAlign: 'center',
         fontFamily: 'system-ui, sans-serif'
       }}>
-        <div>กำลังโหลด...</div>
+        <div>กำลังโหลดหน้าการแจ้งเตือน...</div>
+        <div style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
+          URL: {typeof window !== 'undefined' ? window.location.href : 'Loading...'}
+        </div>
       </div>
     }>
       <NotificationContent />

@@ -11,6 +11,16 @@ export default function HomePage() {
   const [sendToAll, setSendToAll] = useState(true)
   const [sending, setSending] = useState(false)
 
+  const testNotificationClick = () => {
+    // Simulate notification click redirect
+    const testUrl = `/notification?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&timestamp=${encodeURIComponent(new Date().toISOString())}&id=${encodeURIComponent('test-' + Date.now())}`
+    
+    console.log('=== TESTING NOTIFICATION REDIRECT ===')
+    console.log('Test URL:', testUrl)
+    
+    window.location.href = testUrl
+  }
+
   const sendNotification = async (e: FormEvent) => {
     e.preventDefault()
     setSending(true)
@@ -116,10 +126,29 @@ export default function HomePage() {
             borderRadius: '4px',
             fontSize: '16px',
             cursor: sending || (!sendToAll && selectedDevices.length === 0) ? 'not-allowed' : 'pointer',
-            fontWeight: '500'
+            fontWeight: '500',
+            marginBottom: '8px'
           }}
         >
           {sending ? 'Sending...' : 'Send Notification'}
+        </button>
+        
+        <button 
+          type="button" 
+          onClick={testNotificationClick}
+          style={{ 
+            width: '100%',
+            padding: '8px 16px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '14px',
+            cursor: 'pointer',
+            fontWeight: '500'
+          }}
+        >
+          🧪 ทดสอบหน้าการแจ้งเตือน
         </button>
       </form>
       {status && (
@@ -134,6 +163,25 @@ export default function HomePage() {
           {status}
         </div>
       )}
+      
+      <div style={{ 
+        marginTop: '20px', 
+        padding: '12px',
+        backgroundColor: '#f8f9fa',
+        border: '1px solid #dee2e6',
+        borderRadius: '4px',
+        fontSize: '12px'
+      }}>
+        <strong>วิธีทดสอบ:</strong><br />
+        1. กด "Send Notification" เพื่อส่งการแจ้งเตือน<br />
+        2. เมื่อได้รับการแจ้งเตือน ให้คลิกที่มัน<br />
+        3. ระบบจะเปิดหน้าใหม่แสดงรายละเอียดการแจ้งเตือน<br />
+        4. ดู Browser Console สำหรับ debug logs<br />
+        <br />
+        <a href="/test-notification" style={{ color: '#007cba' }}>
+          → ไปหน้าทดสอบ
+        </a>
+      </div>
     </div>
   )
 }
